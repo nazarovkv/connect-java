@@ -1,0 +1,65 @@
+= connect-java-logging-log4j2
+
+== Description
+custom logger for log4j2
+
+This is a custom logger for log4j2 that obeys the rules laid down by the
+Connect platform for distributed logging. 
+
+To use it in your log4j2 configuration, add it in packages you should be scanning,
+ideally identify it specifically by its classname so it does not scan at all.
+
+The package is `*cd.connect.logging.ConnectJsonLayout*` and it is designed to log to `*stdout*`
+ as all distributed loggers are.
+
+[source:xml]
+ <Configuration monitorInterval="30" verbose="true" packages="cd.connect.logging.ConnectJsonLayout">
+ 
+ 	<Appenders>
+ 		<Console name="Console" target="SYSTEM_OUT">
+ 			<ConnectJsonLayout></ConnectJsonLayout>
+ 		</Console>
+ 	</Appenders>
+ 
+ 	<Loggers>
+ 
+ 		<!-- Reduce noise -->
+ 		<AsyncLogger name="org.springframework" level="info"/>
+ 		<AsyncLogger name="org.springframework.beans.factory" level="warn"/>
+ 		<AsyncLogger name="org.apache" level="warn"/>
+ 		<AsyncLogger name="org.hibernate" level="warn"/>
+ 		<AsyncLogger name="org.glassfish" level="debug"/>
+ 		<AsyncLogger name="org.jboss" level="warn"/>
+ 		<AsyncLogger name="com.amazonaws" level="warn"/>
+ 
+ 		<!-- this controls whether each HTTP request is logged (very verbose) -->
+ 		<AsyncLogger name="jersey-logging" level="trace"/>
+ 		<AsyncLogger name="cd.connect" level="debug"/>
+ 
+ 		<AsyncRoot level="info">
+ 			<AppenderRef ref="Console"/>
+ 		</AsyncRoot>
+ 
+ 	</Loggers>
+ </Configuration>
+
+
+== Installation Instructions
+How to install
+
+== Build Status
+TravisCI link or something else - delete if not needed
+
+== Documentation
+There is no further specific documentation for this.
+
+The main documentation for link:http://connect.cd[Connect] can be found at: link:http://docs.connect.cd[docs.connect.cd]
+
+'''
+image::http://website.clearpoint.co.nz/connect/connect-logo-on-white-border.png[]
+link:http://connect.cd[Connect] is a Continuous Delivery Platform that gathers best practice approaches for deploying working software into the cloud with confidence.
+
+The main documentation for link:http://connect.cd[Connect] can be found at link:http://docs.connect.cd[docs.connect.cd]
+
+Any queries on the link:http://connect.cd[Connect] platform can be sent to: connect@clearpoint.co.nz
+

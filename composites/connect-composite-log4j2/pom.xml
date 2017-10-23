@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>cd.connect.composites.java</groupId>
+		<artifactId>connect-composite-parent</artifactId>
+		<version>1.1</version>
+		<relativePath>../connect-composite-parent</relativePath>
+	</parent>
+
+  <artifactId>connect-composite-log4j2</artifactId>
+  <version>1.2-SNAPSHOT</version>
+  <packaging>jar</packaging>
+  <name>connect-composite-log4j2</name>
+
+	<description>
+		composite log4js - specifically for use with log4j2
+	</description>
+
+	<url>https://clearpointnz.github.io/connect/</url>
+	<developers>
+		<developer>
+			<email>richard@bluetrainsoftware.com</email>
+			<id>rvowles</id>
+			<name>Richard Vowles</name>
+			<organization>on behalf of ClearPoint NZ Ltd</organization>
+		</developer>
+	</developers>
+
+	<licenses>
+		<license>
+			<name>Apache License 2.0</name>
+			<url>https://opensource.org/licenses/Apache-2.0</url>
+		</license>
+	</licenses>
+
+	<scm>
+		<connection>scm:git:git@github.com:clearpointnz/connect-java-composite.git</connection>
+		<developerConnection>scm:git:git@github.com:clearpointnz/connect-java-composite.git</developerConnection>
+		<url>git@github.com:clearpointnz/connect-java-composite.git</url>
+		<tag>HEAD</tag>
+	</scm>
+
+  <properties>
+	  <log4j.version>2.8.2</log4j.version>
+	  <lmax.disruptor>3.3.6</lmax.disruptor>
+  </properties>
+
+  <dependencies>
+	  <dependency>
+		  <groupId>cd.connect.composites.java</groupId>
+		  <artifactId>connect-composite-logging</artifactId>
+		  <version>[1.1, 2)</version>
+	  </dependency>
+
+	  <!-- Binding for log4j -->
+	  <dependency>
+		  <groupId>org.apache.logging.log4j</groupId>
+		  <artifactId>log4j-slf4j-impl</artifactId>
+		  <version>[${log4j.version}]</version>
+	  </dependency>
+	  <dependency>
+		  <groupId>org.apache.logging.log4j</groupId>
+		  <artifactId>log4j-api</artifactId>
+		  <version>[${log4j.version}]</version>
+	  </dependency>
+	  <dependency>
+		  <groupId>org.apache.logging.log4j</groupId>
+		  <artifactId>log4j-core</artifactId>
+		  <version>[${log4j.version}]</version>
+	  </dependency>
+	  <dependency>
+		  <groupId>org.apache.logging.log4j</groupId>
+		  <artifactId>log4j-1.2-api</artifactId>
+		  <version>[${log4j.version}]</version>
+	  </dependency>
+	  <dependency>
+		  <groupId>org.apache.logging.log4j</groupId>
+		  <artifactId>log4j-jul</artifactId>
+		  <version>[${log4j.version}]</version>
+	  </dependency>
+	  <dependency>
+		  <groupId>com.lmax</groupId>
+		  <artifactId>disruptor</artifactId>
+		  <version>[${lmax.disruptor}]</version>
+	  </dependency>
+  </dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>io.repaint.maven</groupId>
+				<artifactId>tiles-maven-plugin</artifactId>
+				<version>2.10</version>
+				<extensions>true</extensions>
+				<configuration>
+					<filtering>false</filtering>
+					<tiles>
+						<tile>cd.connect.tiles:tile-release:[1.1, 2)</tile>
+					</tiles>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

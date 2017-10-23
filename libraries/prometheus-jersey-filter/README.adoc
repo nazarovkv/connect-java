@@ -1,0 +1,65 @@
+= Prometheus Jersey Support
+
+== Descrption
+This repository adds in tracking functionality via Prometheus to Jersey applications. It directly
+supports Prometheus and _nothing else_. This is a deliberate decision because adding levels of configuration
+and indirection leads to poor performance, something we are trying to avoid by using Prometheus!
+
+By default this library will wrap all your JAX-RS runctions with Histogram timings and it will also track
+counters of 2xx, 3xx, 4xx and 5xx counters.
+
+The "all" is controlled by a system property (true/false) of `prometheus.jersey.all` or environment variable
+`PROMETHEUS_JERSEY_ALL`. You can also create an instance of the *Feature* and set it directly, along with the prefix.
+
+The _prefix_ allows you to prefix all of your metrics - allowing you to essentially group them. This is controlled
+by `prometheus.jersey.prefix` or environment variable `PROMETHEUS_JERSEY_PREFIX` (or again, create the instance yourself).
+
+
+The name of the metric is automatically generated from the method name (the class is behind a proxy, making it hard
+to get to) and the help is the declaration style of the API call - e.g. `/events/{guid}` instead of the actual guid.
+This is cached so it only happens once.
+
+If you wish to override the name, simply add:
+
+----
+@Prometheus(name="metric_name", help="your help")
+----
+
+which ever is left blank gets the default name (so you can leave help blank and it will get the default help).
+
+To then use it in your Jersey application, add in:
+
+----
+register(PrometheusDynamicFeature.class);
+----
+
+It is, of course, released in Apache Maven Central, so just add the dependency to your pom:
+
+----
+<dependency>
+  <groupId>com.bluetrainsoftware</groupId>
+	<artifactId>prometheus-jersey</artifactId>
+  <version>2.1</version>
+</dependency>
+----
+
+
+== Installation Instructions
+How to install
+
+== Build Status
+TravisCI link or something else - delete if not needed
+
+== Documentation
+There is no further specific documentation for this.
+
+The main documentation for link:http://connect.cd[Connect] can be found at: link:http://docs.connect.cd[docs.connect.cd]
+
+'''
+image::http://website.clearpoint.co.nz/connect/connect-logo-on-white-border.png[]
+link:http://connect.cd[Connect] is a Continuous Delivery Platform that gathers best practice approaches for deploying working software into the cloud with confidence.
+
+The main documentation for link:http://connect.cd[Connect] can be found at link:http://docs.connect.cd[docs.connect.cd]
+
+Any queries on the link:http://connect.cd[Connect] platform can be sent to: connect@clearpoint.co.nz
+

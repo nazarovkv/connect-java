@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+  <groupId>cd.connect.composites.java</groupId>
+	<artifactId>connect-composites-java-reactor</artifactId>
+	<version>1.1-SNAPSHOT</version>
+  <packaging>pom</packaging>
+	<name>connect-composites-java-reactor</name>
+
+  <modules>
+    <module>connect-composite-parent</module>
+    <module>connect-composite-servlet</module>
+    <module>connect-composite-groovy</module>
+    <module>connect-composite-jaxrs</module>
+    <module>connect-composite-jersey-client</module>
+    <module>connect-composite-jersey</module>
+    <module>connect-composite-jersey-spring</module>
+    <module>connect-composite-jackson</module>
+    <module>connect-composite-kubernetes</module>
+    <module>connect-composite-log4j2</module>
+    <module>connect-composite-logging</module>
+    <module>connect-composite-openssl</module>
+    <module>connect-composite-prometheus</module>
+    <module>connect-composite-spring</module>
+    <module>connect-composite-springweb</module>
+    <module>connect-composite-springwebapp</module>
+    <!--<module>connect-composite-springboot</module>-->
+    <module>connect-composite-test</module>
+    <!--<module>connect-composite-webtoken</module>-->
+  </modules>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.repaint.maven</groupId>
+        <artifactId>tiles-maven-plugin</artifactId>
+        <version>2.10</version>
+        <extensions>true</extensions>
+        <configuration>
+          <filtering>false</filtering>
+          <tiles>
+            <tile>cd.connect.tiles:tile-release:[1.1, 2)</tile>
+          </tiles>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
