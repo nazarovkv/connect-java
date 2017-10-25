@@ -11,7 +11,7 @@ import java.util.Map;
 /**
  * @author Richard Vowles - https://plus.google.com/+RichardVowles
  */
-public class JerseryLoggingMapping implements JsonLogEnhancer {
+public class JerseyLoggingMapping implements JsonLogEnhancer {
 	@Override
 	public int getMapPriority() {
 		return 30;

@@ -99,10 +99,9 @@ public class ServerLoggingOpenTracingAdapterFilter implements ContainerRequestFi
       if (responseContext.getStatus() >= 500) {
         log.error("request-complete");
       } else {
-        log.debug("request-complete");
+        log.trace("request-complete");
       }
     } finally {
-      MDC.clear(); // should we just clean our own? i think we should clean everything
       processingTimeMs.remove();
     }
   }

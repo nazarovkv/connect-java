@@ -31,6 +31,10 @@ public class FilteringClientLoggingFilter extends BaseFilteringLogger implements
 		super(jerseyFiltering,verbosity, maxEntitySize);
 	}
 
+	protected void recordOutgoing(ClientRequestContext context, String action) {
+		ConnectContext.set(Constants.REST_CONTEXT, action + ": " + context.getMethod() + " - " +  context.getMethod() + " " + context.getUri().toASCIIString());
+	}
+
 	@Override
 	public void filter(final ClientRequestContext context) throws IOException {
 		String uriPath = context.getUri().getPath();
@@ -43,7 +47,7 @@ public class FilteringClientLoggingFilter extends BaseFilteringLogger implements
 		StringBuilder b = new StringBuilder();
 
 		URI uri = context.getUri();
-		ConnectContext.set(Constants.REST_CONTEXT, "sending - " + context.getMethod() + " " + uri.toASCIIString());
+		recordOutgoing(context, "sending");
 
 		printRequestLine(b, "Sending client request", id, context.getMethod(), uri);
 		printPrefixedHeaders(b, id, REQUEST_PREFIX, context.getStringHeaders());
@@ -65,6 +69,9 @@ public class FilteringClientLoggingFilter extends BaseFilteringLogger implements
 		if (!logger.isTraceEnabled() || jerseyFiltering.excludeForUri(uriPath)) {
 			return;
 		}
+
+		recordOutgoing(requestContext, "response");
+
 		Object requestId = requestContext.getProperty(LOGGING_ID_PROPERTY);
 		long id = requestId != null ? (Long) requestId : _id.incrementAndGet();
 

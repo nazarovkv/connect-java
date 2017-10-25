@@ -15,7 +15,7 @@ class JerseyLoggingMappingSpec extends Specification {
 		  headers[Constants.REST_CONTEXT] = "burp"
 		  headers[Constants.REST_STATUS_CODE] = "100"
 		when: "i pass this to the jersey logging mapping"
-		  def jlm = new JerseryLoggingMapping()
+		  def jlm = new JerseyLoggingMapping()
 			jlm.map(headers, [:], [])
 		then: "they are removed"
 		  headers.size() == 0
@@ -35,7 +35,7 @@ class JerseyLoggingMappingSpec extends Specification {
 		  String payload = "this is the message and becomes the payload"
 		  log.message = payload
 		when: "i pass this into the jersey logging mapper"
-			def jlm = new JerseryLoggingMapping()
+			def jlm = new JerseyLoggingMapping()
 			jlm.map(headers, log, [])
 		then: "we get the message swapped to payload"
 		  log.jersey != null

@@ -23,9 +23,14 @@ import java.text.SimpleDateFormat
 @CompileStatic
 class ConnectJsonLayout extends AbstractLayout<LogEvent> {
   protected List<JsonLogEnhancer> loggingProcessors = EnhancerServiceLoader.findJsonLogEnhancers()
+	protected boolean prettyPrint;
+	protected String prettyPrintSuffix;
 
   ConnectJsonLayout() {
     super(null, null, null) // nothing accepted
+
+	  prettyPrint = System.getProperty("connect.layout.pretty") != null;
+	  prettyPrintSuffix = System.getProperty("connect.layout.pretty", "")
   }
 
   @Override
@@ -64,6 +69,10 @@ class ConnectJsonLayout extends AbstractLayout<LogEvent> {
       if (alreadyEncodedJsonObjects) {
         json = json.substring(0, json.length()-1) + "," + alreadyEncodedJsonObjects.join(',') + '}'
       }
+
+	    if (prettyPrint) {
+		    json = JsonOutput.prettyPrint(json) + prettyPrintSuffix
+	    }
 
       return (json + "\n").bytes
     } catch (Exception ex) {

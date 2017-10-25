@@ -1,10 +1,13 @@
 package org.glassfish.jersey.logging;
 
+import cd.connect.context.ConnectContext;
 import cd.connect.spring.jersey.JerseyLoggerPoint;
 import cd.connect.spring.jersey.log.JerseyFiltering;
 import org.glassfish.jersey.message.MessageUtils;
 
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.client.ClientRequestContext;
+import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.WriterInterceptor;
@@ -100,6 +103,10 @@ abstract class BaseFilteringLogger implements WriterInterceptor {
 		if (logger != null && logger.isTraceEnabled()) {
 			logger.trace("{}", b.toString());
 		}
+
+
+		ConnectContext.remove(Constants.REST_CONTEXT);
+		ConnectContext.remove(Constants.REST_STATUS_CODE);
 	}
 
 	private StringBuilder prefixId(final StringBuilder b, final long id) {
