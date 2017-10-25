@@ -191,6 +191,7 @@ public class ServletModuleManager {
 			}
 			String[] urlPatterns = reg.getUrls().toArray(new String[0]);
 			registration.addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), true, urlPatterns);
+			registration.setAsyncSupported(reg.isAsync());
 
 			log.debug("Filter Registered: {}, priority {} : {}", filterName, reg.getPriority(), urlPatterns);
 
