@@ -18,11 +18,7 @@ class TracingJsonLogEnhancerSpec extends Specification {
 		when: "i process them"
 		  Map<String, Object> logs = [:]
 		  new TracingJsonLogEnhancer().map(context, logs, [])
-		then: "they are longs"
-		  logs.size() == 3
-		  logs[TracingExtractor.REQUEST_PARENT_SPAN] == 3L
-		  logs[TracingExtractor.REQUEST_SPAN] == 2L
-		  logs[TracingExtractor.REQUEST_ID] == 1L
-
+		then: "no processing occurs"
+		  logs.size() == 0
 	}
 }

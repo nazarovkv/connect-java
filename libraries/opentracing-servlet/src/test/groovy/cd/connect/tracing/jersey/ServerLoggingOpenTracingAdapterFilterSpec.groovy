@@ -96,22 +96,22 @@ class ServerLoggingOpenTracingAdapterFilterSpec extends Specification {
 		  tags['appName'] == 'mary'
 	}
 
-  def "record processing time and close out MDC"() {
-	  given: "i have put stuff in MDC"
-	    MDC.clear()
-	    MDC.put("hello", "there")
-	  and: "have server filter"
-	    jaegerTracer.enabled = false
-	    ServerLoggingOpenTracingAdapterFilter filter = new ServerLoggingOpenTracingAdapterFilter(
-		    null, null,
-		    new NoopTracingExtractor(new HeaderLoggingConfiguration(null)))
-	  and: "a request"
-	    ContainerRequestContext request = [:] as ContainerRequestContext
-	  and: "a response"
-	    ContainerResponseContext response = [getStatus:{-> return 201}] as ContainerResponseContext
-	  when: "i ask for an output server filter"
-	    filter.filter(request, response)
-	  then: "MDC is empty"
-	    MDC.getCopyOfContextMap().size() == 0
-  }
+//  def "record processing time and close out MDC"() {
+//	  given: "i have put stuff in MDC"
+//	    MDC.clear()
+//	    MDC.put("hello", "there")
+//	  and: "have server filter"
+//	    jaegerTracer.enabled = false
+//	    ServerLoggingOpenTracingAdapterFilter filter = new ServerLoggingOpenTracingAdapterFilter(
+//		    null, null,
+//		    new NoopTracingExtractor(new HeaderLoggingConfiguration(null)))
+//	  and: "a request"
+//	    ContainerRequestContext request = [:] as ContainerRequestContext
+//	  and: "a response"
+//	    ContainerResponseContext response = [getStatus:{-> return 201}] as ContainerResponseContext
+//	  when: "i ask for an output server filter"
+//	    filter.filter(request, response)
+//	  then: "MDC is empty"
+//	    MDC.getCopyOfContextMap().size() == 0
+//  }
 }

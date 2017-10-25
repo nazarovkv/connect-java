@@ -6,8 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * - in Jaeger, these are Longs, so logging them as such is far more efficient for space in elastic
- * - in Zipkin they are strings, so leave them as such
+ * - in Jaeger, they are logged as strings, so we leave them as strings.
  *
  * @author Richard Vowles - https://plus.google.com/+RichardVowles
  */
