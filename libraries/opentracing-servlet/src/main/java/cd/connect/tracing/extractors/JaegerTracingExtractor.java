@@ -37,4 +37,9 @@ public class JaegerTracingExtractor implements TracingExtractor {
 			MDC.put(REQUEST_SPAN, Long.toHexString(realSpan.getSpanId()));
 		}
 	}
+
+	@Override
+	public boolean sendRequestHeader(String localName) {
+		return false;
+	}
 }

@@ -17,4 +17,6 @@ public interface TracingExtractor {
 	}
 
 	void embedActiveSpanContext(SpanContext spanContext, HeaderSource headerSource);
+
+	boolean sendRequestHeader(String localName);
 }

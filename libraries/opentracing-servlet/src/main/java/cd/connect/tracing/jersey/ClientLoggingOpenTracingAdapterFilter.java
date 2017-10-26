@@ -57,7 +57,10 @@ public class ClientLoggingOpenTracingAdapterFilter implements ClientRequestFilte
 	  for(String sendHeader : headerLoggingConfiguration.getAcceptHeaders()) {
     	String localName = validHeaders.get(sendHeader);
 
-		  if ((activeSpan == null || activeSpan.getBaggageItem(localName) == null) && !localName.equals(TracingExtractor.REQUEST_ID)) {
+    	// if activeSpan is null then we always add the header
+		  // if activespan isn't null and the item isn't in the baggage then ask the tracking extractor if we should
+		  //    send it
+		  if (activeSpan == null || ( activeSpan.getBaggageItem(localName) == null && tracingExtractor.sendRequestHeader(localName))) {
 		  	String val = MDC.get(localName);
 
 		  	if (val != null) {

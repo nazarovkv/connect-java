@@ -28,4 +28,9 @@ public class NoopTracingExtractor implements TracingExtractor {
 			MDC.put(TracingExtractor.REQUEST_ID, headerLoggingConfiguration.getAppName() + ":" + UUID.randomUUID().toString());
 		}
 	}
+
+	@Override
+	public boolean sendRequestHeader(String localName) {
+		return true;
+	}
 }

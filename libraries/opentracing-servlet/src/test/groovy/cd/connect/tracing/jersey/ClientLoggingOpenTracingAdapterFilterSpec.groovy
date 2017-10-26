@@ -39,7 +39,7 @@ class ClientLoggingOpenTracingAdapterFilterSpec extends Specification {
 				return headers
 			}] as ClientRequestContext
 		and: "i have the client request filter"
-		  ClientLoggingOpenTracingAdapterFilter clf = new ClientLoggingOpenTracingAdapterFilter(hlc, tracer, new ZipkinIstioTracingExtractor())
+		  ClientLoggingOpenTracingAdapterFilter clf = new ClientLoggingOpenTracingAdapterFilter(hlc, tracer, new NoopTracingExtractor(hlc))
 		and: "I set the MDC"
 		  MDC.put("sausage", "cumberlands")
 		  MDC.put("flavour", "tempura")

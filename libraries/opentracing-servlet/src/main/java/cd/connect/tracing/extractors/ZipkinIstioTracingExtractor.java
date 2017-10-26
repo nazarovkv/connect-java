@@ -28,4 +28,9 @@ public class ZipkinIstioTracingExtractor implements TracingExtractor {
 		setLog("x-b3-spanid", TracingExtractor.REQUEST_SPAN, headerSource);
 		setLog("x-b3-parentspanid", TracingExtractor.REQUEST_PARENT_SPAN, headerSource);
 	}
+
+	@Override
+	public boolean sendRequestHeader(String localName) {
+		return false;
+	}
 }
