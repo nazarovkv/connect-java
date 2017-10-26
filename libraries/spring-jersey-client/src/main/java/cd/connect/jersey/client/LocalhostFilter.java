@@ -24,7 +24,9 @@ public class LocalhostFilter implements ClientRequestFilter {
     if (rewriting) {
       log.info("previous uri {}", requestContext.getUri().toString());
 
-      requestContext.setUri(UriBuilder.fromUri(requestContext.getUri()).host("127.0.0.1").build());
+	    UriBuilder uriBuilder = UriBuilder.fromUri(requestContext.getUri());
+	    uriBuilder.host(System.getProperty(requestContext.getUri().getHost(), "127.0.0.1"));
+	    requestContext.setUri(uriBuilder.build());
 
       log.info("current uri {}", requestContext.getUri().toString());
     }
