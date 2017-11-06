@@ -41,6 +41,10 @@
 		<tag>HEAD</tag>
 	</scm>
 
+	<properties>
+		<jetty.version>9.4.7.v20170914</jetty.version>
+	</properties>
+
 	<dependencies>
 		<!-- spring and all its necessary web deps -->
 		<dependency>
@@ -63,12 +67,54 @@
 			<version>2.1</version>
 		</dependency>
 
-		<!-- jetty runnable war -->
 		<dependency>
-			<groupId>nz.ac.auckland.groupapps.common</groupId>
-			<artifactId>runnable-war</artifactId>
-			<version>1.11</version>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-server</artifactId>
+			<version>${jetty.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-jsp</artifactId>
+			<version>9.3.0.M1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-servlet</artifactId>
+			<version>${jetty.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-webapp</artifactId>
+			<version>${jetty.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.bluetrainsoftware.bathe.initializers</groupId>
+			<artifactId>jul-bridge</artifactId>
+			<version>1.1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.bluetrainsoftware.bathe</groupId>
+					<artifactId>bathe-booter</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.bluetrainsoftware.classpathscanner</groupId>
+			<artifactId>scanner-spring-boot-loader</artifactId>
+			<version>[1.1,2)</version>
+		</dependency>
+		<dependency>
+			<groupId>cd.connect.common</groupId>
+			<artifactId>connect-runnable-war</artifactId>
+			<version>1.2</version>
+			<exclusions>
+				<exclusion>
+					<groupId>cd.connect.composites.java</groupId>
+					<artifactId>connect-composite-logging</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
 
 		<!-- allows stickycode to load yaml files -->
 		<dependency>
@@ -82,6 +128,12 @@
 			<groupId>cd.connect.servlet</groupId>
 			<artifactId>servlet-spring-jersey</artifactId>
 			<version>[1.4, 2)</version>
+			<exclusions>
+				<exclusion>
+					<groupId>cd.connect.composites.java</groupId>
+					<artifactId>connect-composite-test</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<!-- logging -->
