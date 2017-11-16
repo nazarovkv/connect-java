@@ -3,10 +3,6 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-  <tiles>
-	  <tile>com.globaldairytrade.tiles:tile-common:[1.1, 2)</tile>
-  </tiles>
-
 	<properties>
 		<main.class>cd.connect.war.WebAppRunner</main.class>
 	</properties>
