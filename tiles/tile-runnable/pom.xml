@@ -5,7 +5,7 @@
   <!-- tile artifacts are always released -->
   <groupId>cd.connect.tiles</groupId>
 	<artifactId>tile-runnable</artifactId>
-	<version>1.1-SNAPSHOT</version>
+	<version>1.1</version>
   <packaging>tile</packaging>
 	<name>tile-runnable - base for runnable java apps</name>
 
@@ -34,7 +34,7 @@
     <connection>scm:git:git@github.com:clearpointnz/connect-tile-java.git</connection>
     <developerConnection>scm:git:git@github.com:clearpointnz/connect-tile-java.git</developerConnection>
     <url>git@github.com:clearpointnz/connect-tile-java.git</url>
-    <tag>HEAD</tag>
+    <tag>tile-runnable-1.1</tag>
   </scm>
 
   <build>
