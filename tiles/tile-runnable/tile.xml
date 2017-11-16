@@ -8,7 +8,7 @@
   </tiles>
 
 	<properties>
-		<main.class>cd.connect.Application</main.class>
+		<main.class>cd.connect.war.WebAppRunner</main.class>
 	</properties>
 
 	<profiles>
