@@ -51,6 +51,16 @@
 		  <artifactId>slf4j-api</artifactId>
 		  <version>[${slfj4.version}]</version>
 	  </dependency>
+	  <dependency>
+		  <groupId>org.slf4j</groupId>
+		  <artifactId>jcl-over-slf4j</artifactId>
+		  <version>[${slfj4.version}]</version>
+	  </dependency>
+	  <dependency>
+		  <groupId>org.slf4j</groupId>
+		  <artifactId>jul-to-slf4j</artifactId>
+		  <version>[${slfj4.version}]</version>
+	  </dependency>
   </dependencies>
 
 	<build>
