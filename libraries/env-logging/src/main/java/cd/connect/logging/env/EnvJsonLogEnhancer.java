@@ -3,7 +3,6 @@ package cd.connect.logging.env;
 import cd.connect.logging.JsonLogEnhancer;
 import com.bluetrainsoftware.common.config.ConfigKey;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class EnvJsonLogEnhancer implements JsonLogEnhancer {
 	// ENV_VAR=localName
 	@ConfigKey("connect.logging.environment")
-	Map<String, String> environmentMap;
+	Map<String, String> environmentMap = new ConcurrentHashMap<>();
 
 	private Map<String, String> converted = new ConcurrentHashMap<>();
 
@@ -37,13 +36,10 @@ public class EnvJsonLogEnhancer implements JsonLogEnhancer {
 
 	@Override
 	public void map(Map<String, String> context, Map<String, Object> log, List<String> alreadyEncodedJsonObjects) {
-		if (converted.size() > 0) {
-
-		}
+		converted.forEach(log::put);
 	}
 
 	@Override
 	public void failed(Map<String, String> context, Map<String, Object> log, List<String> alreadyEncodedJsonObjects, Throwable e) {
-
 	}
 }
