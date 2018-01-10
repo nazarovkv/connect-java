@@ -1,32 +1,40 @@
 package cd.connect.logging.env;
 
 import cd.connect.logging.JsonLogEnhancer;
-import com.bluetrainsoftware.common.config.ConfigKey;
 
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by Richard Vowles on 9/01/18.
  */
 public class EnvJsonLogEnhancer implements JsonLogEnhancer {
-	// ENV_VAR=localName
-	@ConfigKey("connect.logging.environment")
-	Map<String, String> environmentMap = new ConcurrentHashMap<>();
-
 	private Map<String, String> converted = new ConcurrentHashMap<>();
+	final protected static String CONFIG_KEY = "connect.logging.environment";
 
-	public void init() {
-		environmentMap.forEach((env, logField) -> {
-			String e = System.getenv(env);
-			if (e != null) {
-				e = e.trim();
-				if (e.length() > 0) {
-					converted.put(logField, e);
+	public EnvJsonLogEnhancer() {
+		String envs = System.getProperty(CONFIG_KEY);
+		if (envs != null) {
+			StringTokenizer st = new StringTokenizer(envs, ",");
+			while (st.hasMoreTokens()) {
+				String[] val = st.nextToken().split("=");
+				if (val.length == 2) { // two parts
+					String e = getEnv(val[0]);
+					if (e != null) {
+						e = e.trim();
+						if (e.length() > 0) {
+							converted.put(val[1], e);
+						}
+					}
 				}
 			}
-		});
+		}
+	}
+
+	protected String getEnv(String env) {
+		return System.getenv(env);
 	}
 
 	@Override

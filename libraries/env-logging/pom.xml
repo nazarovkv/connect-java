@@ -43,13 +43,6 @@
 			<scope>provided</scope>
     </dependency>
 
-		<dependency>
-			<groupId>cd.connect.composites.java</groupId>
-			<artifactId>connect-composite-spring</artifactId>
-			<version>[1.1, 2)</version>
-			<scope>provided</scope>
-		</dependency>
-
     <dependency>
 			<groupId>cd.connect.common</groupId>
 			<artifactId>connect-java-logging</artifactId>
