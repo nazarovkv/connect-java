@@ -10,14 +10,10 @@ import java.util.Map;
  * Created by Richard Vowles on 11/01/18.
  */
 public class PropertyLoggingFilter extends BaseLoggingFilter {
-	@ConfigKey("connect.logging.headers.from-properties")
-	Map<String, String> propertyMap;
-
 	Map<String, String> headerFirstPropertyMap = new HashMap<>();
 
-	@PostConfigured
-	public void init() {
-		propertyMap.forEach((propertyName, headerName) -> {
+	public PropertyLoggingFilter() {
+		makeMapFromConfig("connect.logging.headers.from-properties").forEach((propertyName, headerName) -> {
 			// we need this to go from a header -> a property name to extract the value
 			headerFirstPropertyMap.put(headerName, propertyName);
 

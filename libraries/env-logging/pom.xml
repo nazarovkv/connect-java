@@ -8,7 +8,7 @@
 	<name>connect-env-logging</name>
 
 	<description>
-		this logs environment variables with every single log message. 
+		this logs environment variables with every single log message.
 	</description>
 
 	<url>https://clearpointnz.github.io/connect/</url>
@@ -55,6 +55,14 @@
       <version>[1.1, 2)</version>
       <scope>test</scope>
     </dependency>
+
+	  <!-- used only to compile -->
+	  <dependency>
+		  <groupId>com.bluetrainsoftware.bathe</groupId>
+		  <artifactId>bathe-booter</artifactId>
+		  <version>[2,3)</version>
+		  <scope>provided</scope>
+	  </dependency>
   </dependencies>
 
   <build>

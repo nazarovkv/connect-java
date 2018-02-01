@@ -7,18 +7,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * These are created as needed by Jersey.
+ *
  * Created by Richard Vowles on 11/01/18.
  */
 public class EnvironmentLoggingFilter extends BaseLoggingFilter {
-
-	@ConfigKey("connect.logging.headers.from-environment")
-	Map<String, String> environmentMap;
-
 	private Map<String, String> localEnvironmentMap = new HashMap<>();
 
-	@PostConfigured
-	public void init() {
-		environmentMap.forEach((envName, headerName) -> {
+	public EnvironmentLoggingFilter() {
+		makeMapFromConfig("connect.logging.headers.from-environment").forEach((envName, headerName) -> {
 			String val = getEnv(envName);
 
 			if (val != null) {
