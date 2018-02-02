@@ -6,11 +6,11 @@ logging request.
 It is expected to be configured by a system property:
 
 ----
-connect.logging.environment=NAME=log-key,NAME=log-key
+connect.logging.environment=NAME:log-key,NAME:log-key
 ----
 
 an example might be the Kubernetes node that you are running on. In which case if you expose that information
-via the Deployment as, say, `MY_KUBERNETES_NODE`
+via the Deployment as, say, `MY_KUBERNETES_NODE`. You can use : or = as a separator.
 
 ----
 connect.logging.environment=MY_KUBERNETES_NODE=kubernetes.node

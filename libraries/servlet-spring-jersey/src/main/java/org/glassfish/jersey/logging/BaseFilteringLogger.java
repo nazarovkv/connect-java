@@ -107,6 +107,7 @@ abstract class BaseFilteringLogger implements WriterInterceptor {
 
 		ConnectContext.remove(Constants.REST_CONTEXT);
 		ConnectContext.remove(Constants.REST_STATUS_CODE);
+		ConnectContext.remove(Constants.REST_TIMING);
 	}
 
 	private StringBuilder prefixId(final StringBuilder b, final long id) {

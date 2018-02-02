@@ -43,7 +43,7 @@ abstract public class BaseLoggingFilter implements ContainerRequestFilter, Clien
     if (envs != null) { // don't init twice
       StringTokenizer st = new StringTokenizer(envs, ",");
       while (st.hasMoreTokens()) {
-        java.lang.String[] val = st.nextToken().split("=");
+        java.lang.String[] val = st.nextToken().split("[:=]");
         if (val.length == 2) { // two parts
           converted.put(val[0].trim(), val[1].trim());
         }

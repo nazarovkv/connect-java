@@ -28,7 +28,7 @@ public class EnvJsonLogEnhancer implements JsonLogEnhancer {
       if (envs != null && self.converted.size() == 0) { // don't init twice
         StringTokenizer st = new StringTokenizer(envs, ",");
         while (st.hasMoreTokens()) {
-          String[] val = st.nextToken().split("=");
+          String[] val = st.nextToken().split("[:=]");
           if (val.length == 2) { // two parts
             String e = self.getEnv(val[0]);
             if (e != null) {

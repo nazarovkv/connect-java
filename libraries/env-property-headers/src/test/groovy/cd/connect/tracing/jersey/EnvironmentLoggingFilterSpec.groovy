@@ -13,18 +13,21 @@ import javax.ws.rs.core.MultivaluedMap
  * Created by Richard Vowles on 11/01/18.
  */
 class EnvironmentLoggingFilterSpec extends Specification {
+	def envs = ["MY_KUBE_NODE":"local", "MY_KUBE_REGION":"mars", 'MY_IGNORE': 'should-ignore-this']
+
 	def "basic test"() {
 		given: "i have some sample environment variables"
-		  def envs = ["MY_KUBE_NODE":"local", "MY_KUBE_REGION":"mars", 'MY_IGNORE': 'should-ignore-this']
+		  // had to move this up?
 		and: "i have a simple logger"
+			System.setProperty('connect.logging.headers.from-environment',
+				['MY_KUBE_NODE':'X-Origin-Kube-Node','MY_KUBE_REGION':'X-Origin-Kube-Region', 'MY_IGNORE': 'X-Dont-Use-Local-Env', 'NO_SUCH_ENV':'X-I-Dont-Exist'].toMapString()[1..-2])
+
 		  EnvironmentLoggingFilter filter = new EnvironmentLoggingFilter() {
 			  @Override
 			  protected String getEnv(String envName) {
 				  return envs[envName]
 			  }
 		  }
-		  filter.environmentMap = ['MY_KUBE_NODE':'X-Origin-Kube-Node','MY_KUBE_REGION':'X-Origin-Kube-Region', 'MY_IGNORE': 'X-Dont-Use-Local-Env', 'NO_SUCH_ENV':'X-I-Dont-Exist']
-		  filter.init()
 		and: "i have a container request with a single header"
 			MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
 			headers.add('X-Dont-Use-Local-Env', 'already-value')

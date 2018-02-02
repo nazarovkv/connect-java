@@ -43,6 +43,7 @@ public class FilteringClientLoggingFilter extends BaseFilteringLogger implements
 		}
 		long id = _id.incrementAndGet();
 		context.setProperty(LOGGING_ID_PROPERTY, id);
+		context.setProperty(Constants.REST_TIMING, System.currentTimeMillis());
 
 		StringBuilder b = new StringBuilder();
 
@@ -81,6 +82,12 @@ public class FilteringClientLoggingFilter extends BaseFilteringLogger implements
 
 		if (responseContext.hasEntity() && printEntity(verbosity, responseContext.getMediaType())) {
 			responseContext.setEntityStream(logInboundEntity(b, responseContext.getEntityStream(), MessageUtils.getCharset(responseContext.getMediaType())));
+		}
+
+		Long start = (Long)requestContext.getProperty(Constants.REST_TIMING);
+		if (start != null) {
+			long end = System.currentTimeMillis();
+			ConnectContext.set(Constants.REST_TIMING, (end - start) + "");
 		}
 
 		log(b);
