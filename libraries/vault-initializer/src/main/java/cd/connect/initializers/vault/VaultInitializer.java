@@ -5,6 +5,10 @@ import com.bettercloud.vault.SslConfig;
 import com.bettercloud.vault.Vault;
 import com.bettercloud.vault.VaultConfig;
 import com.bettercloud.vault.VaultException;
+import com.bettercloud.vault.json.Json;
+import com.bettercloud.vault.response.AuthResponse;
+import com.bettercloud.vault.rest.Rest;
+import com.bettercloud.vault.rest.RestResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,14 +44,22 @@ public class VaultInitializer implements BatheInitializer {
     if (vaultKeys.size() == 0) {
       log.info("vault: no keys in system properties to discover");
     } else {
-      loadVaultKeys(vaultKeys);
+      try {
+        Vault vault = configureVaultClient();
+
+        loadVaultKeys(vault, vaultKeys);
+      } catch (VaultException e) {
+        throw new RuntimeException(e);
+      }
+
+
     }
     
     return args;
   }
 
   static String readFile(String path, Charset encoding) {
-    byte[] encoded = new byte[0];
+    byte[] encoded;
     try {
       encoded = Files.readAllBytes(Paths.get(path));
     } catch (IOException e) {
@@ -56,28 +68,12 @@ public class VaultInitializer implements BatheInitializer {
     return new String(encoded, encoding);
   }
 
-  private void loadVaultKeys(List<VaultKey> vaultKeys) {
-    String vaultServer = System.getProperty("vault.url", "vault-server");
+  private String getenv(String env, String def) {
+    String val = System.getenv(env);
+    return val == null ? def : val;
+  }
 
-    if (vaultServer == null) {
-      throw new RuntimeException("Vault keys were discovered but we have no Vault Server.");
-    }
-
-    String vaultJwtTokenFile = System.getProperty("vault.tokenFile", "/var/run/secrets/kubernetes.io/serviceaccount/token");
-    String vaultCertFile = System.getProperty("vault.certFile", "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt");
-    
-    try {
-      final VaultConfig config =
-        new VaultConfig()
-          .address(vaultServer)               // Defaults to "VAULT_ADDR" environment variable
-        .token(readFile(vaultJwtTokenFile, Charset.forName("UTF-8")))  // Defaults to "VAULT_TOKEN" environment variable
-        .openTimeout(5)                                 // Defaults to "VAULT_OPEN_TIMEOUT" environment variable
-        .readTimeout(30)                                // Defaults to "VAULT_READ_TIMEOUT" environment variable
-        .sslConfig(new SslConfig().pemFile(new File(vaultCertFile)).build())             // See "SSL Config" section below
-        .build();
-
-      final Vault vault = new Vault(config);
-
+  private void loadVaultKeys(Vault vault, List<VaultKey> vaultKeys) {
       vaultKeys.parallelStream().forEach(vaultKey -> {
         try {
           final String val = vault.logical().read(vaultKey.getVaultKeyName()).getData().get("value");
@@ -87,8 +83,89 @@ public class VaultInitializer implements BatheInitializer {
           throw new RuntimeException(e);
         }
       });
-    } catch (VaultException e) {
-      throw new RuntimeException(e);
+  }
+
+  private Vault configureVaultClient() throws VaultException {
+    String vaultServer = System.getProperty("vault.url", "vault-server");
+
+    if (vaultServer == null) {
+      throw new RuntimeException("Vault keys were discovered but we have no Vault Server.");
+    }
+
+    String vaultJwtTokenFile = getenv("VAULT_TOKENFILE", "/var/run/secrets/kubernetes.io/serviceaccount/token");
+    String vaultCertFile = getenv("VAULT_CERTFILE", "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt");
+    String vaultRole = System.getProperty("vault.role", System.getProperty("app.name"));
+    String vaultJwtToken = System.getenv("VAULT_TOKEN");
+
+    if (vaultJwtToken == null) {
+      vaultJwtToken = readFile(vaultJwtTokenFile, Charset.forName("UTF-8"));
+    }
+
+    final VaultConfig config =
+      new VaultConfig()
+        .address(vaultServer)               // Defaults to "VAULT_ADDR" environment variable
+        .openTimeout(5)                                 // Defaults to "VAULT_OPEN_TIMEOUT" environment variable
+        .readTimeout(30)                                // Defaults to "VAULT_READ_TIMEOUT" environment variable
+        .sslConfig(new SslConfig().pemFile(new File(vaultCertFile)).build())             // See "SSL Config" section below
+        .build();
+
+    if (vaultRole != null) {
+      config.token(requestAuthTokenByRole(config, vaultJwtToken, vaultRole).getAuthClientToken());
+    } else {
+      config.token(vaultJwtToken);
+    }
+
+    return new Vault(config);
+  }
+
+  /**
+   * this is the pattern from BetterCloud's library. They just don't support role or kubernetes login. They also don't
+   * support most of the returned info.
+   *
+   * @param config - the Vault Config
+   * @param vaultJwtToken - the JWT used to make the auth request (to get the real token)
+   * @param vaultRole - the role we are
+   *
+   * @return - an object decoding some of the payload, but importantly, the auth client token
+   */
+  private AuthResponse requestAuthTokenByRole(VaultConfig config, String vaultJwtToken, String vaultRole) {
+    int retryCount = 0;
+    while (true) {
+      try {
+        // HTTP request to Vault
+        final String requestJson = Json.object().add("jwt", vaultJwtToken).add("role", vaultRole).toString();
+        final RestResponse restResponse = new Rest()//NOPMD
+          .url(config.getAddress() + getenv("VAULT_ROLE_URL", "/v1/auth/kubernetes/login"))
+          .body(requestJson.getBytes("UTF-8"))
+          .connectTimeoutSeconds(config.getOpenTimeout())
+          .readTimeoutSeconds(config.getReadTimeout())
+          .sslVerification(config.getSslConfig().isVerify())
+          .sslContext(config.getSslConfig().getSslContext())
+          .post();
+
+        // Validate restResponse
+        if (restResponse.getStatus() != 200) {
+          throw new VaultException("Vault responded with HTTP status code: " + restResponse.getStatus(), restResponse.getStatus());
+        }
+        final String mimeType = restResponse.getMimeType() == null ? "null" : restResponse.getMimeType();
+        if (!mimeType.equals("application/json")) {
+          throw new VaultException("Vault responded with MIME type: " + mimeType, restResponse.getStatus());
+        }
+        return new AuthResponse(restResponse, retryCount);
+      } catch (Exception e) {
+        // If there are retries to perform, then pause for the configured interval and then execute the loop again...
+        if (retryCount < config.getMaxRetries()) {
+          retryCount++;
+          try {
+            final int retryIntervalMilliseconds = config.getRetryIntervalMilliseconds();
+            Thread.sleep(retryIntervalMilliseconds);
+          } catch (InterruptedException e1) {
+            e1.printStackTrace();
+          }
+        } else {
+          throw new RuntimeException(e);
+        }
+      }
     }
   }
 
