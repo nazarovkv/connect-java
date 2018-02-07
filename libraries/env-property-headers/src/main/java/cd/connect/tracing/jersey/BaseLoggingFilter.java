@@ -1,5 +1,7 @@
 package cd.connect.tracing.jersey;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 import javax.ws.rs.client.ClientRequestContext;
@@ -22,6 +24,7 @@ import java.util.StringTokenizer;
 abstract public class BaseLoggingFilter implements ContainerRequestFilter, ClientRequestFilter, ContainerResponseFilter {
 	protected List<String> allHeaderNames = new ArrayList<>();
 	protected Map<String, String> headerLogNameMap = new HashMap<>();
+	private Logger log = LoggerFactory.getLogger(getClass());
 
 	// strip x-, replace - with .
 	protected String headerNameToLogName(String name) {
@@ -45,7 +48,11 @@ abstract public class BaseLoggingFilter implements ContainerRequestFilter, Clien
       while (st.hasMoreTokens()) {
         java.lang.String[] val = st.nextToken().split("[:=]");
         if (val.length == 2) { // two parts
-          converted.put(val[0].trim(), val[1].trim());
+	        String envName = val[0].trim();
+	        String headerName = val[1].trim();
+
+	        log.info("adding header: env {} header {}", envName, headerName);
+          converted.put(envName, headerName);
         }
       }
     }

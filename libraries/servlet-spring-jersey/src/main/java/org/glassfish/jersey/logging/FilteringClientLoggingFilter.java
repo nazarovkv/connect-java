@@ -43,7 +43,7 @@ public class FilteringClientLoggingFilter extends BaseFilteringLogger implements
 		}
 		long id = _id.incrementAndGet();
 		context.setProperty(LOGGING_ID_PROPERTY, id);
-		context.setProperty(Constants.REST_TIMING, System.currentTimeMillis());
+		context.setProperty(Constants.REST_TIMING, Long.toString(System.currentTimeMillis()));
 
 		StringBuilder b = new StringBuilder();
 

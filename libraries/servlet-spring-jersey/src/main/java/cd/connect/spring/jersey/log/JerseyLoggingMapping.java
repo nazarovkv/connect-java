@@ -28,6 +28,7 @@ public class JerseyLoggingMapping implements JsonLogEnhancer {
 	public void map(Map<String, String> context, Map<String, Object> log, List<String> alreadyEncodedJsonObjects) {
 		String restContent = context.remove(Constants.REST_CONTEXT);
 		String statusCode = context.remove(Constants.REST_STATUS_CODE);
+		String responseTime = context.remove(Constants.REST_TIMING);
 
 		if (JerseyLoggerPoint.LOGGER_POINT.equals(log.get("path"))) {
 			Map<String, Object> jersey = new HashMap<>();
@@ -35,6 +36,7 @@ public class JerseyLoggingMapping implements JsonLogEnhancer {
 			log.put("priority", "REST"); // overwrite the priority
 
 			jersey.put("payload", log.remove("message"));
+			jersey.put("ms", responseTime);
 
 			if (restContent != null) {
 				log.put("message", restContent);

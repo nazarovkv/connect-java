@@ -1,11 +1,15 @@
 package cd.connect.logging.env;
 
 import cd.connect.logging.JsonLogEnhancer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Created by Richard Vowles on 9/01/18.
@@ -14,6 +18,7 @@ public class EnvJsonLogEnhancer implements JsonLogEnhancer {
 	protected Map<String, String> converted = new ConcurrentHashMap<>();
 	final protected static String CONFIG_KEY = "connect.logging.environment";
 	protected static EnvJsonLogEnhancer self;
+	final private static Logger log = LoggerFactory.getLogger(EnvJsonLogEnhancer.class);
 
   /**
    * The difficulty here is that the logging gets initialized _very_ early. So you need to choose something
@@ -27,6 +32,7 @@ public class EnvJsonLogEnhancer implements JsonLogEnhancer {
       String envs = System.getProperty(CONFIG_KEY);
       if (envs != null && self.converted.size() == 0) { // don't init twice
         StringTokenizer st = new StringTokenizer(envs, ",");
+        List<String> environmentVariables = new ArrayList<>();
         while (st.hasMoreTokens()) {
           String[] val = st.nextToken().split("[:=]");
           if (val.length == 2) { // two parts
@@ -35,9 +41,16 @@ public class EnvJsonLogEnhancer implements JsonLogEnhancer {
               e = e.trim();
               if (e.length() > 0) {
                 self.converted.put(val[1], e);
+                environmentVariables.add(val[1]);
               }
             }
           }
+        }
+
+        if (environmentVariables.size() > 0) {
+        	log.info("Environment logger created with {} variables", environmentVariables.stream().collect(Collectors.joining(", ")));
+        } else {
+        	log.info("No environmental loggers detected, probably misconfigured.");
         }
       }
     }
