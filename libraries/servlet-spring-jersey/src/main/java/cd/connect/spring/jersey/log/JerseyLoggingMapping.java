@@ -36,7 +36,9 @@ public class JerseyLoggingMapping implements JsonLogEnhancer {
 			log.put("priority", "REST"); // overwrite the priority
 
 			jersey.put("payload", log.remove("message"));
-			jersey.put("ms", responseTime);
+			if (responseTime != null) {
+				jersey.put("ms", responseTime);
+			}
 
 			if (restContent != null) {
 				log.put("message", restContent);
