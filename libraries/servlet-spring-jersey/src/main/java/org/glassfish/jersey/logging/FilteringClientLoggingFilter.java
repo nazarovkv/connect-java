@@ -84,10 +84,15 @@ public class FilteringClientLoggingFilter extends BaseFilteringLogger implements
 			responseContext.setEntityStream(logInboundEntity(b, responseContext.getEntityStream(), MessageUtils.getCharset(responseContext.getMediaType())));
 		}
 
-		Long start = (Long)requestContext.getProperty(Constants.REST_TIMING);
-		if (start != null) {
-			long end = System.currentTimeMillis();
-			ConnectContext.set(Constants.REST_TIMING, (end - start) + "");
+		Object originalStart = requestContext.getProperty(Constants.REST_TIMING);
+		if (originalStart != null) {
+			if (originalStart instanceof String) {
+				requestContext.removeProperty(Constants.REST_TIMING);
+			} else {
+				Long start = (Long) originalStart;
+				long end = System.currentTimeMillis();
+				ConnectContext.set(Constants.REST_TIMING, (end - start) + "");
+			}
 		}
 
 		log(b);
