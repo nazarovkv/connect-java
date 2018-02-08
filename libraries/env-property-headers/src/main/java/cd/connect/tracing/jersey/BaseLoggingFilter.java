@@ -28,9 +28,7 @@ abstract public class BaseLoggingFilter implements ContainerRequestFilter, Clien
 
 	// strip x-, replace - with .
 	protected String headerNameToLogName(String name) {
-		name = name.toLowerCase();
-
-		if (name.startsWith("x-")) {
+		if (name.toLowerCase().startsWith("x-")) {
 			name = name.substring(2);
 		}
 

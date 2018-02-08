@@ -41,9 +41,9 @@ class EnvironmentLoggingFilterSpec extends Specification {
 		  filter.filter(outgoingRequest)
 		then: 'i should have an MDC of three items'
 		  MDC.getCopyOfContextMap().size() == 3
-		  MDC.get('origin.kube.node') == 'local'
-		  MDC.get('origin.kube.region') == 'mars'
-		  MDC.get('dont.use.local.env') == 'already-value'
+		  MDC.get('Origin.Kube.Node') == 'local'
+		  MDC.get('Origin.Kube.Region') == 'mars'
+		  MDC.get('Dont.Use.Local.Env') == 'already-value'
 		and: 'I the outgoing request should have those headers'
 		  requestheaders.size() == 3
 		  requestheaders.getFirst('X-Origin-Kube-Node') == 'local'
