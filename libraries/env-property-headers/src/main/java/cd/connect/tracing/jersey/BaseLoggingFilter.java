@@ -94,12 +94,17 @@ abstract public class BaseLoggingFilter implements ContainerRequestFilter, Clien
 		MultivaluedMap<String, Object> headers = requestContext.getHeaders();
 
 		allHeaderNames.forEach(headerName -> {
-			String val = MDC.get(headerLogNameMap.get(headerName));
-			if (val == null) {
-				val = getLocalValueForMissingHeader(headerName); // in case we originated this call
-			}
-			if (val != null) {
-				headers.add(headerName, val);
+			Object first = headers.getFirst(headerName);
+
+			// ensure we only set this value if it isn't already set
+			if (first == null) {
+				String val = MDC.get(headerLogNameMap.get(headerName));
+				if (val == null) {
+					val = getLocalValueForMissingHeader(headerName); // in case we originated this call
+				}
+				if (val != null) {
+					headers.add(headerName, val);
+				}
 			}
 		});
 	}
