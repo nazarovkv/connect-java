@@ -48,7 +48,7 @@ public class JerseyLoggingMapping implements JsonLogEnhancer {
 				jersey.put("statusCode", Integer.parseInt(statusCode));
 			}
 
-			log.put("jersey", jersey);
+			log.put("connect", jersey);
 		}
 	}
 
