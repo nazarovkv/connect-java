@@ -55,20 +55,6 @@
 			<artifactId>vault-java-driver</artifactId>
 			<version>3.0.0</version>
 		</dependency>
-
-		<!-- only required for tests -->
-		<dependency>
-			<groupId>cd.connect.composites.java</groupId>
-			<artifactId>connect-composite-groovy</artifactId>
-			<version>[1.1, 2)</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>cd.connect.composites.java</groupId>
-			<artifactId>connect-composite-test</artifactId>
-			<version>[1.1, 2)</version>
-			<scope>test</scope>
-		</dependency>
 	</dependencies>
 
 	<build>
@@ -81,7 +67,7 @@
 				<configuration>
 					<filtering>false</filtering>
 					<tiles>
-						<tile>cd.connect.tiles:tile-groovy:[1.2, 2)</tile>
+						<tile>cd.connect.tiles:tile-java:[1.2, 2)</tile>
 					</tiles>
 				</configuration>
 			</plugin>

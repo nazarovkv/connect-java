@@ -92,8 +92,8 @@ public class VaultInitializer implements BatheInitializer {
       throw new RuntimeException("Vault keys were discovered but we have no Vault Server.");
     }
 
-    String vaultJwtTokenFile = getenv("VAULT_TOKENFILE", "/var/run/secrets/kubernetes.io/serviceaccount/token");
-    String vaultCertFile = getenv("VAULT_CERTFILE", "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt");
+    String vaultJwtTokenFile = getenv("VAULT_TOKENFILE", System.getProperty("vault.tokenFile", "/var/run/secrets/kubernetes.io/serviceaccount/token"));
+    String vaultCertFile = getenv("VAULT_CERTFILE", System.getProperty("vault.certFile", "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"));
     String vaultRole = System.getProperty("vault.role", System.getProperty("app.name"));
     String vaultJwtToken = System.getenv("VAULT_TOKEN");
 
@@ -139,8 +139,8 @@ public class VaultInitializer implements BatheInitializer {
           .body(requestJson.getBytes("UTF-8"))
           .connectTimeoutSeconds(config.getOpenTimeout())
           .readTimeoutSeconds(config.getReadTimeout())
-          .sslVerification(config.getSslConfig().isVerify())
-          .sslContext(config.getSslConfig().getSslContext())
+//          .sslVerification(config.getSslConfig().isVerify())
+//          .sslContext(config.getSslConfig().getSslContext())
           .post();
 
         // Validate restResponse
