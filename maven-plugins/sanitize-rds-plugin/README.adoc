@@ -1,0 +1,11 @@
+== Sanitize DB
+
+- Create an SNS topic (in our case called `global-rds-event-topic`) and subscribe a queue to this
+(in our case `global-rds-event-queue`).
+- Create an *Event Subscription* for all instance events to the topic, and another one for all
+  snapshot events to the queue.
+
+Eventually this will also have support for Aurora Clusters.
+
+Make sure only the topic can post to the queue
+unsure how to prevent others from posting to SNS
