@@ -99,6 +99,9 @@ public class VaultInitializer implements BatheInitializer {
 
     if (vaultJwtToken == null) {
       vaultJwtToken = readFile(vaultJwtTokenFile, Charset.forName("UTF-8"));
+      if (vaultJwtToken.endsWith("\n")) {
+        vaultJwtToken = vaultJwtToken.substring(0, vaultJwtToken.length() - 1);
+      }
     }
 
     final VaultConfig config =
@@ -136,15 +139,19 @@ public class VaultInitializer implements BatheInitializer {
         final String requestJson = Json.object().add("jwt", vaultJwtToken).add("role", vaultRole).toString();
         final RestResponse restResponse = new Rest()//NOPMD
           .url(config.getAddress() + getenv("VAULT_ROLE_URL", "/v1/auth/kubernetes/login"))
+          .header("Content-type", "application/json")
           .body(requestJson.getBytes("UTF-8"))
           .connectTimeoutSeconds(config.getOpenTimeout())
           .readTimeoutSeconds(config.getReadTimeout())
-//          .sslVerification(config.getSslConfig().isVerify())
-//          .sslContext(config.getSslConfig().getSslContext())
+          .sslVerification(config.getSslConfig().isVerify())
+          .sslContext(config.getSslConfig().getSslContext())
           .post();
 
         // Validate restResponse
         if (restResponse.getStatus() != 200) {
+          if (restResponse.getBody() != null) {
+            log.error("Vault body is {}", new String(restResponse.getBody(), "UTF-8"));
+          }
           throw new VaultException("Vault responded with HTTP status code: " + restResponse.getStatus(), restResponse.getStatus());
         }
         final String mimeType = restResponse.getMimeType() == null ? "null" : restResponse.getMimeType();

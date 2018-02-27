@@ -11,10 +11,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
 
 /**
- * Create a src/test/resources folder and take the ca.crt and token file from the pod
- * you are testing and put it in that directory.
+ * take the ca.crt and token file from the pod
+ * you are testing and put it in /tmp.
  *
- * Created by Richard Vowles on 27/02/18.
+ * Then port-forward to the vault pod.
+ *
  */
 public class ManualRunner {
 	private static void disableSslVerification() {
@@ -51,16 +52,14 @@ public class ManualRunner {
 			e.printStackTrace();
 		}
 	}
-	// VAULT_TOKENFILE=src/test/resources/token
-	// VAULT_CERTFILE=src/test/resources/ca.crt
-	//
+
 	public static void main(String[] args) {
-		disableSslVerification();
+//		disableSslVerification();
 		System.setProperty("fred", "[K8SVAULT]secret/apisecret");
 		System.setProperty("vault.role", "api");
-		System.setProperty("vault.url", "https://localhost:8200");
-		System.setProperty("vault.tokenFile", "src/test/resources/token");
-		System.setProperty("vault.certFile", "src/test/resources/ca.crt");
+		System.setProperty("vault.url", "https://vault.state.svc.cluster.local:8200");
+		System.setProperty("vault.tokenFile", "/tmp/token");
+		System.setProperty("vault.certFile", "/tmp/ca.crt");
 		new VaultInitializer().initialize(new String[] {}, null);
 		System.out.println(System.getProperty("fred"));
 	}
