@@ -17,3 +17,15 @@ It will connect to vault using the environment:
 It will create a bunch of requests in parallel to get its configuration as quickly as possible.
 
 NOTE: It fails quickly - if anything is wrong, it kills the process with the appropriate errors.
+
+==== sub keys
+
+If you need to pull items from a map, you can do so with:
+
+----
+myservice.aws=[K8SVAULT]/myserver/aws#access_key,secret_key
+----
+
+this will cause the request for the key `/myserver/aws` and will then set system properties of `myservice.aws.access_key` and
+`myservice.aws.secret_key`.
+

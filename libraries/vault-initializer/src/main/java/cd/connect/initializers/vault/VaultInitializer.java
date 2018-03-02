@@ -18,7 +18,10 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author Richard Vowles - https://plus.google.com/+RichardVowles
@@ -76,9 +79,23 @@ public class VaultInitializer implements BatheInitializer {
   private void loadVaultKeys(Vault vault, List<VaultKey> vaultKeys) {
       vaultKeys.parallelStream().forEach(vaultKey -> {
         try {
-          final String val = vault.logical().read(vaultKey.getVaultKeyName()).getData().get("value");
-          System.setProperty(vaultKey.getSystemPropertyFieldName(), val);
-          log.info("vault: set key {} from vault.", vaultKey.getSystemPropertyFieldName());
+          log.info("requesting {}", vaultKey.getVaultKeyName());
+          Map<String, String> data = vault.logical().read(vaultKey.getVaultKeyName()).getData();
+          if (vaultKey.subPropertyFieldNames.size() == 0) {
+            final String val = data.get("value");
+            System.setProperty(vaultKey.getSystemPropertyFieldName(), val);
+            log.info("vault: set property `{}` from vault key `{}`.", vaultKey.getSystemPropertyFieldName(), vaultKey.getVaultKeyName());
+          } else {
+            vaultKey.subPropertyFieldNames.forEach( subkey -> {
+              String val = data.get(subkey);
+              if (val != null) {
+                String subKeyName = vaultKey.getSystemPropertyFieldName() + "." + subkey;
+                System.setProperty(subKeyName, val);
+                log.info("vault: set property `{}` from vault key `{}`.", subKeyName, vaultKey.getVaultKeyName());
+              }
+
+            });
+          }
         } catch (VaultException e) {
           throw new RuntimeException(e);
         }
@@ -179,6 +196,7 @@ public class VaultInitializer implements BatheInitializer {
   class VaultKey {
     private final String systemPropertyFieldName;
     private final String vaultKeyName;
+    private List<String> subPropertyFieldNames = new ArrayList<>();
 
     public String getSystemPropertyFieldName() {
       return systemPropertyFieldName;
@@ -190,16 +208,29 @@ public class VaultInitializer implements BatheInitializer {
 
     public VaultKey(String systemPropertyFieldName, String vaultKeyName) {
       this.systemPropertyFieldName = systemPropertyFieldName;
-      this.vaultKeyName = vaultKeyName;
+      this.vaultKeyName = split(vaultKeyName);
+    }
+
+    private String split(String systemPropertyFieldName) {
+      String[] parts = systemPropertyFieldName.split("#");
+
+      if (parts.length > 1) {
+        this.subPropertyFieldNames = Arrays.stream(parts[1].split(","))
+          .map(String::trim)
+          .filter(s -> s.length() > 0)
+          .collect(Collectors.toList());
+      }
+
+      return parts[0];
     }
   }
 
   List<VaultKey> discoverFields() {
     List<VaultKey> vaultKeys = new ArrayList<>();
 
-    System.getProperties().entrySet().forEach( entry -> {
-      String key = entry.getKey().toString();
-      String value = entry.getValue().toString();
+    System.getProperties().forEach((key1, value1) -> {
+      String key = key1.toString();
+      String value = value1.toString();
 
       if (value.startsWith(VAULT_KEY_PREFIX)) {
         String part = value.substring(VAULT_KEY_PREFIX.length()).trim();

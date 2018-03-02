@@ -55,12 +55,14 @@ public class ManualRunner {
 
 	public static void main(String[] args) {
 //		disableSslVerification();
-		System.setProperty("fred", "[K8SVAULT]secret/apisecret");
-		System.setProperty("vault.role", "api");
+		System.setProperty("sugar.aws", "[K8SVAULT]/aws/creds/sugar#access_key,secret_key");
+		//System.setProperty("fred", "[K8SVAULT]secret/apisecret");
+		System.setProperty("vault.role", "sugar");
 		System.setProperty("vault.url", "https://vault.state.svc.cluster.local:8200");
 		System.setProperty("vault.tokenFile", "/tmp/token");
 		System.setProperty("vault.certFile", "/tmp/ca.crt");
 		new VaultInitializer().initialize(new String[] {}, null);
-		System.out.println(System.getProperty("fred"));
+		System.out.println(System.getProperty("sugar.aws.access_key"));
+		System.out.println(System.getProperty("sugar.aws.secret_key"));
 	}
 }
