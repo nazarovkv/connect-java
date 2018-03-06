@@ -29,3 +29,12 @@ myservice.aws=[K8SVAULT]/myserver/aws#access_key,secret_key
 this will cause the request for the key `/myserver/aws` and will then set system properties of `myservice.aws.access_key` and
 `myservice.aws.secret_key`.
 
+Alternatively, you can provide key-name pairs, with the first being the value in the map returned by Vault, the
+second being the system property addition. E.g.
+
+----
+myservice.aws=[K8SVAULT]/myserver/aws#access_key=accessKey,secret_key=secretKey
+----
+
+this will cause the request for the key `/myserver/aws` and will then set system properties of `myservice.aws.accessKey` and
+`myservice.aws.secretKey`. You can use `:` instead of `=` if you prefer.

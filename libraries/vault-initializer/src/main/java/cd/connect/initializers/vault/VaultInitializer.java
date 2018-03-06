@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -86,10 +87,10 @@ public class VaultInitializer implements BatheInitializer {
             System.setProperty(vaultKey.getSystemPropertyFieldName(), val);
             log.info("vault: set property `{}` from vault key `{}`.", vaultKey.getSystemPropertyFieldName(), vaultKey.getVaultKeyName());
           } else {
-            vaultKey.subPropertyFieldNames.forEach( subkey -> {
+            vaultKey.subPropertyFieldNames.forEach( (subkey, propertySubName) -> {
               String val = data.get(subkey);
               if (val != null) {
-                String subKeyName = vaultKey.getSystemPropertyFieldName() + "." + subkey;
+                String subKeyName = vaultKey.getSystemPropertyFieldName() + "." + propertySubName;
                 System.setProperty(subKeyName, val);
                 log.info("vault: set property `{}` from vault key `{}`.", subKeyName, vaultKey.getVaultKeyName());
               }
@@ -157,7 +158,7 @@ public class VaultInitializer implements BatheInitializer {
         final RestResponse restResponse = new Rest()//NOPMD
           .url(config.getAddress() + getenv("VAULT_ROLE_URL", "/v1/auth/kubernetes/login"))
           .header("Content-type", "application/json")
-          .body(requestJson.getBytes("UTF-8"))
+          .body(requestJson.getBytes(Charset.forName("UTF-8")))
           .connectTimeoutSeconds(config.getOpenTimeout())
           .readTimeoutSeconds(config.getReadTimeout())
           .sslVerification(config.getSslConfig().isVerify())
@@ -167,7 +168,7 @@ public class VaultInitializer implements BatheInitializer {
         // Validate restResponse
         if (restResponse.getStatus() != 200) {
           if (restResponse.getBody() != null) {
-            log.error("Vault body is {}", new String(restResponse.getBody(), "UTF-8"));
+            log.error("Vault body is {}", new String(restResponse.getBody(), Charset.forName("UTF-8")));
           }
           throw new VaultException("Vault responded with HTTP status code: " + restResponse.getStatus(), restResponse.getStatus());
         }
@@ -190,38 +191,6 @@ public class VaultInitializer implements BatheInitializer {
           throw new RuntimeException(e);
         }
       }
-    }
-  }
-
-  class VaultKey {
-    private final String systemPropertyFieldName;
-    private final String vaultKeyName;
-    private List<String> subPropertyFieldNames = new ArrayList<>();
-
-    public String getSystemPropertyFieldName() {
-      return systemPropertyFieldName;
-    }
-
-    public String getVaultKeyName() {
-      return vaultKeyName;
-    }
-
-    public VaultKey(String systemPropertyFieldName, String vaultKeyName) {
-      this.systemPropertyFieldName = systemPropertyFieldName;
-      this.vaultKeyName = split(vaultKeyName);
-    }
-
-    private String split(String systemPropertyFieldName) {
-      String[] parts = systemPropertyFieldName.split("#");
-
-      if (parts.length > 1) {
-        this.subPropertyFieldNames = Arrays.stream(parts[1].split(","))
-          .map(String::trim)
-          .filter(s -> s.length() > 0)
-          .collect(Collectors.toList());
-      }
-
-      return parts[0];
     }
   }
 

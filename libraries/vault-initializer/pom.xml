@@ -61,6 +61,13 @@
 			<artifactId>vault-java-driver</artifactId>
 			<version>3.0.0</version>
 		</dependency>
+
+		<dependency>
+			<groupId>cd.connect.composites.java</groupId>
+			<artifactId>connect-composite-test</artifactId>
+			<version>[1.1, 2)</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
