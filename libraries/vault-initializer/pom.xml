@@ -84,6 +84,24 @@
 					</tiles>
 				</configuration>
 			</plugin>
+
+			<plugin>
+				<groupId>cd.connect.pipeline</groupId>
+				<artifactId>docker-manifest-collectosaur-plugin</artifactId>
+				<version>1.1-SNAPSHOT</version>
+				<executions>
+					<execution>
+						<id>babysaur</id>
+						<goals>
+							<goal>babysaur</goal>
+						</goals>
+						<configuration>
+							<baseImageName>${project.artifactId}</baseImageName>
+							<fullImageName>blah/${projoect.artifactId}</fullImageName>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 </project>
