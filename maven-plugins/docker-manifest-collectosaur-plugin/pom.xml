@@ -26,9 +26,11 @@
 	</licenses>
 
 	<description>
-		Maven plugin to scan the classpath of the project being built and create a prescan file. The prescan
-		file contains paths to resources, web-fragment.xml and web.xml files. This is used by the WebRunner
-		to speed up start up of web applications.
+		This plugin is designed to be used in artifacts that generate docker images. babysaur will create a manifest
+		file in artifacts that create docker images and you should use mamasaur in the reactor that controls them. It depends
+		on the "modules" section and will walk down through your POM files looking for submodules of submodules. Given this
+		does not work with Maven when building differences, you should generally NOT use multiple levels of submodules with
+		maven reactors. 
 	</description>
 
 	<scm>
@@ -141,6 +143,34 @@
 						<id>generated-helpmojo</id>
 						<goals>
 							<goal>helpmojo</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-invoker-plugin</artifactId>
+				<version>2.0.0</version>
+				<configuration>
+					<projectsDirectory>src/it</projectsDirectory>
+					<cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
+					<!--<mavenOpts>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8000</mavenOpts>-->
+					<pomIncludes>
+						<pomInclude>*/pom.xml</pomInclude>
+					</pomIncludes>
+					<!-- <preBuildHookScript>setup</preBuildHookScript> -->
+					<postBuildHookScript>verify</postBuildHookScript>
+					<localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
+					<settingsFile>src/it/settings.xml</settingsFile>
+					<debug>true</debug>
+				</configuration>
+				<executions>
+					<execution>
+						<id>integration-test</id>
+						<goals>
+							<goal>install</goal>
+							<goal>run</goal>
 						</goals>
 					</execution>
 				</executions>

@@ -20,16 +20,18 @@ import java.io.IOException;
 @Mojo(name = "babysaur",
 	defaultPhase = LifecyclePhase.PACKAGE,
 	requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME, threadSafe = true)
-public class CollectosaurPluginMojo extends AbstractMojo {
+public class BabysaurMojo extends AbstractMojo {
+  public static final String MANIFEST_NAME = "connect-manifest.json";
+
 	@Parameter(defaultValue = "${project}", readonly = true)
 	MavenProject project;
 
 	@Parameter(defaultValue = "${project.build.directory}")
 	private File projectBuildDir;
 
-	@Parameter(name = "babysaur.baseImageName", required = true)
+	@Parameter(name = "baseImageName", required = true)
 	private String baseImageName;
-	@Parameter(name = "babysaur.fullImageName", required = true)
+	@Parameter(name = "fullImageName", required = true)
 	private String fullImageName;
 
 	@Override
@@ -37,7 +39,9 @@ public class CollectosaurPluginMojo extends AbstractMojo {
 		ObjectMapper om = new ObjectMapper();
 
 		try {
-			FileWriter fw = new FileWriter(new File(projectBuildDir, "connect-manifest.json"));
+		  projectBuildDir.mkdirs();
+		  
+			FileWriter fw = new FileWriter(new File(projectBuildDir, MANIFEST_NAME));
 			ArtifactManifest am = new ArtifactManifest();
 
 			am.baseImageName = baseImageName;
