@@ -10,7 +10,7 @@ import static org.fest.assertions.api.Assertions.assertThat;
 public class VaultKeyTests {
 	@Test
 	public void basicVaultKeyTests() {
-		VaultKey vk = new VaultKey("fred", "/my/key#name=value,name2:value2");
+		VaultKey vk = new VaultKey("fred", "/my/key#name=value,name2:value2", false);
 		assertThat(vk.systemPropertyFieldName).isEqualTo("fred");
 		assertThat(vk.vaultKeyName).isEqualTo("/my/key");
 		assertThat(vk.subPropertyFieldNames.size()).isEqualTo(2);

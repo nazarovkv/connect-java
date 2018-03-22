@@ -77,12 +77,27 @@ public class VaultInitializer implements BatheInitializer {
     return val == null ? def : val;
   }
 
+  private boolean failed = false;
+
   private void loadVaultKeys(Vault vault, List<VaultKey> vaultKeys) {
       vaultKeys.parallelStream().forEach(vaultKey -> {
         try {
           log.info("requesting {}", vaultKey.getVaultKeyName());
           Map<String, String> data = vault.logical().read(vaultKey.getVaultKeyName()).getData();
-          if (vaultKey.subPropertyFieldNames.size() == 0) {
+          if (vaultKey.treatAsMap) {
+            StringBuilder keyValues = new StringBuilder();
+            StringBuilder kvLog = new StringBuilder();
+            data.forEach((key, value) -> {
+              if (keyValues.length() > 0) {
+                keyValues.append(",");
+                kvLog.append(",");
+              }
+              keyValues.append(String.format("%s=%s", key, value));
+              kvLog.append(String.format("%s=******", key));
+            });
+            System.setProperty(vaultKey.getSystemPropertyFieldName(), keyValues.toString());
+            log.info("vault: set property `{}` to similar to `{}`.", vaultKey.getSystemPropertyFieldName(), kvLog.toString());
+          } else if (vaultKey.subPropertyFieldNames.size() == 0) {
             final String val = data.get("value");
             System.setProperty(vaultKey.getSystemPropertyFieldName(), val);
             log.info("vault: set property `{}` from vault key `{}`.", vaultKey.getSystemPropertyFieldName(), vaultKey.getVaultKeyName());
@@ -93,14 +108,20 @@ public class VaultInitializer implements BatheInitializer {
                 String subKeyName = vaultKey.getSystemPropertyFieldName() + "." + propertySubName;
                 System.setProperty(subKeyName, val);
                 log.info("vault: set property `{}` from vault key `{}`.", subKeyName, vaultKey.getVaultKeyName());
+              } else {
+                log.error("Attempted to get subkey `{}` and it is not in the Vault map.", subkey);
               }
-
             });
           }
         } catch (VaultException e) {
-          throw new RuntimeException(e);
+        	failed = true;
+          log.error("failed when requesting " + vaultKey.vaultKeyName, e);
         }
       });
+
+      if (failed) {
+        throw new RuntimeException("Vault initialization failed, please view logs.");
+      }
   }
 
   private Vault configureVaultClient() throws VaultException {
@@ -203,9 +224,14 @@ public class VaultInitializer implements BatheInitializer {
 
       if (value.startsWith(VAULT_KEY_PREFIX)) {
         String part = value.substring(VAULT_KEY_PREFIX.length()).trim();
+        boolean treatAsMap = false;
+        if (part.endsWith("!")) {
+          treatAsMap = true;
+          part = part.substring(0, part.length()-1);
+        }
 
         log.debug("vault key: {} looking for {}", key, part);
-        vaultKeys.add(new VaultKey(key, part));
+        vaultKeys.add(new VaultKey(key, part, treatAsMap));
       }
     });
 

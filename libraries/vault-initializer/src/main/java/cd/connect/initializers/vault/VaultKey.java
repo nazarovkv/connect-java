@@ -13,6 +13,7 @@ public class VaultKey {
 	// I'm with Steve Yegge on this one
 	public final String systemPropertyFieldName;
 	public final String vaultKeyName;
+	public final boolean treatAsMap;
 	public Map<String, String> subPropertyFieldNames = new HashMap<>();
 
 	public String getSystemPropertyFieldName() {
@@ -23,9 +24,10 @@ public class VaultKey {
 		return vaultKeyName;
 	}
 
-	public VaultKey(String systemPropertyFieldName, String vaultKeyName) {
+	public VaultKey(String systemPropertyFieldName, String vaultKeyName, boolean treatAsMap) {
 		this.systemPropertyFieldName = systemPropertyFieldName;
 		this.vaultKeyName = split(vaultKeyName);
+		this.treatAsMap = treatAsMap;
 	}
 
 	private String split(String systemPropertyFieldName) {

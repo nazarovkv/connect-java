@@ -38,3 +38,12 @@ myservice.aws=[K8SVAULT]/myserver/aws#access_key=accessKey,secret_key=secretKey
 
 this will cause the request for the key `/myserver/aws` and will then set system properties of `myservice.aws.accessKey` and
 `myservice.aws.secretKey`. You can use `:` instead of `=` if you prefer.
+
+==== mapped keys
+
+At times, you may wish to expose the keys as a map for use in java config, i.e. `key=value,key=value,key-value`.
+
+To achieve this, add a `!` at the end of your key
+
+myservice.oauth.client_config=[K8SVAULT]secrets/oauth/clients!
+
