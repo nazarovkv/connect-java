@@ -29,7 +29,8 @@ import java.util.Vector;
  */
 @Mojo(name = "mamasaur",
 	defaultPhase = LifecyclePhase.PACKAGE,
-	requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME, threadSafe = true)
+	requiresProject = false,
+	requiresDependencyResolution = ResolutionScope.NONE, threadSafe = true)
 public class MamasaurMojo extends AbstractMojo {
 	@Parameter(defaultValue = "${project}", readonly = true)
 	MavenProject project;
@@ -46,6 +47,10 @@ public class MamasaurMojo extends AbstractMojo {
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
+		if (!"pom".equalsIgnoreCase(project.getPackaging())) {
+			getLog().info("skipping mamasaur, not run on reactor");
+		}
+
 		List<ArtifactManifest> manifests = Collections.synchronizedList(new ArrayList<>());
 
 		walkModels(projectDir, project.getModel(), manifests);
@@ -74,9 +79,9 @@ public class MamasaurMojo extends AbstractMojo {
 				}
 			});
 
-			if (mfe != null) {
-				throw mfe;
-			}
+//			if (mfe != null) {
+//				throw mfe;
+//			}
 		}
 	}
 
