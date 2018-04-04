@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>cd.connect.common</groupId>
 	<artifactId>connect-vault-initializer</artifactId>
-	<version>1.1-SNAPSHOT</version>
+	<version>1.6-SNAPSHOT</version>
 	<name>connect-vault-initializer</name>
 
 	<description>
@@ -51,18 +50,18 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>1.7.25</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
 			<groupId>com.bettercloud</groupId>
 			<artifactId>vault-java-driver</artifactId>
 			<version>3.0.0</version>
 		</dependency>
 
-		<!-- only required for tests -->
-		<dependency>
-			<groupId>cd.connect.composites.java</groupId>
-			<artifactId>connect-composite-groovy</artifactId>
-			<version>[1.1, 2)</version>
-			<scope>provided</scope>
-		</dependency>
 		<dependency>
 			<groupId>cd.connect.composites.java</groupId>
 			<artifactId>connect-composite-test</artifactId>
@@ -81,7 +80,7 @@
 				<configuration>
 					<filtering>false</filtering>
 					<tiles>
-						<tile>cd.connect.tiles:tile-groovy:[1.2, 2)</tile>
+						<tile>cd.connect.tiles:tile-java:[1.2, 2)</tile>
 					</tiles>
 				</configuration>
 			</plugin>

@@ -1,9 +1,8 @@
 package cd.connect.prescan;
 
-import com.bluetrainsoftware.classpathscanner.ClasspathScanner;
-import com.bluetrainsoftware.classpathscanner.ResourceScanListener;
+import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner;
+import io.github.lukehutch.fastclasspathscanner.utils.ClasspathUtils;
 import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.resolver.filter.ArtifactFilter;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -15,13 +14,13 @@ import org.apache.maven.project.MavenProject;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Mojo(name = "prescan-config",
 	defaultPhase = LifecyclePhase.PROCESS_CLASSES,
@@ -38,18 +37,18 @@ public class PrescanGeneratorMojo extends AbstractMojo {
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		List<String> interesting;
+		Set<String> interesting;
 
 		try {
 			if (project != null) {
 				URLClassLoader loader = makeClassLoaderFromProjectDependencies();
 
-				ClasspathScanner scanner = ClasspathScanner.getInstance();
-				interesting = scan( scanner, loader );
+				interesting = scan(loader);
 				if( !interesting.isEmpty() ){
 					// make sure the META-INF folder is there
-					new File(projectBuildPath() + "/META-INF/").mkdirs();
-					FileWriter writer = new FileWriter(projectBuildPath() + "/META-INF/prescan");
+					File metaInfoFolder = new File(getOutputDirectoryFile(), "META-INF");
+					metaInfoFolder.mkdirs();
+					FileWriter writer = new FileWriter(new File(metaInfoFolder, "prescan"));
 					for (String item : interesting) {
 						writer.write(item + System.lineSeparator());
 					}
@@ -61,6 +60,61 @@ public class PrescanGeneratorMojo extends AbstractMojo {
 		} catch (Exception ex) {
 			throw new MojoExecutionException(ex.getMessage(), ex);
 		}
+	}
+
+	// overrideable for testing
+	protected File getOutputDirectoryFile() {
+		return new File(project.getBuild().getOutputDirectory());
+	}
+
+	protected Set<String> scan(ClassLoader loader) {
+		Set<String> found = new HashSet<>();
+
+		String outputDir = getOutputDirectoryFile().getAbsolutePath();
+
+		FastClasspathScanner fcp = new FastClasspathScanner();
+		fcp.addClassLoader(loader);
+		fcp.matchFilenamePath("META-INF/web-fragment.xml", (classpathElt, relativePath, inputStream, isLength) -> {
+			add(found, "fragment", classpathElt, relativePath, outputDir);
+		});
+		fcp.matchFilenamePattern("META-INF/resources/.*", (classpathElt, relativePath, inputStream, isLength) -> {
+			add(found, "resource", classpathElt, "META-INF/resources/", outputDir);
+		});
+		fcp.matchFilenamePath("WEB-INF/web.xml", (classpathElt, relativePath, inputStream, isLength) -> {
+				add(found, "webxml", classpathElt, relativePath, outputDir);
+				add(found, "resource", classpathElt, "", outputDir);
+		});
+		fcp.matchFilenamePath("META-INF/resources/WEB-INF/web.xml", (classpathElt, relativePath, inputStream, isLength) -> {
+			add(found, "webxml", classpathElt, relativePath, outputDir);
+			add(found, "resource", classpathElt, "META-INF/resources/", outputDir);
+		});
+		fcp.scan();
+
+		return found;
+	}
+
+	private String deferenceResource(String url, String outputDir) {
+		if (url.contains("!")) { // jar:file:absolutePath!/offset
+			String[] bits = url.split("!");
+			String prefix = bits[0].substring(0, bits[0].indexOf("/") + 1);
+			String jarfile = bits[0].substring(bits[0].lastIndexOf("/"));
+			bits[0] = prefix + jarpath + jarfile;
+			return String.join("!", bits);
+		}
+
+		if (url.contains(outputDir)) {
+			url = url.replace(outputDir, "");
+		}
+
+		return "jar:" + url;
+	}
+
+	private void add(Set<String> found, String type, File classpathElt, String relativePath, String outputDir) {
+		String path = deferenceResource(ClasspathUtils.getClasspathResourceURL(classpathElt, relativePath).toExternalForm(), outputDir);
+		if (found.add(String.format("%s=%s", type, path))) {
+			getLog().info(String.format("prescan-resource: %s -> `%s`", type, path));
+		}
+
 	}
 
 	private URLClassLoader makeClassLoaderFromProjectDependencies() {
@@ -87,102 +141,12 @@ public class PrescanGeneratorMojo extends AbstractMojo {
 			}
 		});
 
-		return new URLClassLoader(urls.toArray(new URL[0]));
+		return new URLClassLoader(urls.toArray(new URL[0]), null);
 	}
 
-	private void add(List<String> found, String type, String path) {
-		getLog().info(String.format("prescan-resource: %s -> `%s`", type, path));
+	private void add(List<String> found, String type, String path, URL origin) {
+		getLog().info(String.format("prescan-resource: %s -> `%s` (origin `%s`)", type, path, origin.toExternalForm()));
 		found.add(String.format("%s=%s", type, path));
 	}
 
-	// in the master jar it will be META-INF/resources and in sub-jars it will end with a /
-	private static final List<String> resourceOptions = Arrays.asList("META-INF/resources/", "META-INF/resources");
-
-	public List<String> scan(ClasspathScanner scanner, ClassLoader classLoader) throws Exception {
-		List<String> found = new ArrayList<>();
-
-		ResourceScanListener listener = new ResourceScanListener() {
-			@Override
-			public List<ScanResource> resource(List<ScanResource> scanResources) throws Exception {
-				for (ScanResource scanResource : scanResources) {
-					if (scanResource.resourceName.endsWith("WEB-INF/web.xml")) {
-						add(found, "webxml", dereferenceResourcePath(scanResource));
-					} else if ("META-INF/web-fragment.xml".equals(scanResource.resourceName)) {
-						add(found, "fragment", dereferenceResourcePath(scanResource));
-					} else if (resourceOptions.contains(scanResource.resourceName) && isDirectory(scanResource)) {
-						String path = dereferenceResourcePath(scanResource);
-						if (!path.endsWith("/")) {
-							path = path + "/";
-						}
-
-						add(found, "resource", path);
-					}
-				}
-				return null; // nothing was interesting :-)
-			}
-
-			@Override
-			public void deliver(ScanResource scanResource, InputStream inputStream) {
-				// we don't care about the individual files or sub-folders so don't do anything
-			}
-
-			@Override
-			public InterestAction isInteresting(InterestingResource interestingResource) {
-				String url = interestingResource.url.toString();
-				if (url.contains("jre") || url.contains("jdk")) {
-					return InterestAction.NONE;
-				} else {
-					return InterestAction.ONCE;
-				}
-			}
-
-			@Override
-			public void scanAction(ScanAction action) {
-				// we don't care about the actions so don't do anything
-			}
-		};
-
-		scanner.registerResourceScanner(listener);
-		scanner.scan(classLoader);
-		return found;
-	}
-
-	/**
-	 * We need to dereference the path so we don't include the full path. When we are
-	 * running inside mvn, our target path will end in /target so we adjust it so it
-	 * points at /target/classes where all our stuff will be...
-	 * <p>
-	 * When processing a jar file. The URL is going to be something like
-	 * jar:file:/home/user/.m2/repository/org/bob/servlet/2.4.1.Final/servlet-2.4.1.Final.jar!/META-INF/web-fragment.xml
-	 * however it needs to look something like
-	 * jar:file:/lib/servlet-2.4.1.Final.jar!/META-INF/web-fragment.xml
-	 */
-	private String dereferenceResourcePath(ResourceScanListener.ScanResource resource) {
-		String url = resource.getResolvedUrl().toString();
-		if (url.contains("!")) {
-			String[] bits = url.split("!");
-			String prefix = bits[0].substring(0, bits[0].indexOf("/") + 1);
-			String jarfile = bits[0].substring(bits[0].lastIndexOf("/"));
-			bits[0] = prefix + jarpath + jarfile;
-			url = String.join("!", bits);
-		} else {
-			url = "jar:" + url;
-		}
-		return url.replace(projectBuildPath(), "");
-
-	}
-
-	private String projectBuildPath() {
-		String path = projectBuildDir.getPath();
-		// are we in a test?
-		if (!path.endsWith("classes")) {
-			return path + "/classes";
-		}
-		return path;
-	}
-
-	private boolean isDirectory(ResourceScanListener.ScanResource scanResource) {
-		return (scanResource.file != null && scanResource.file.isDirectory()) ||
-			(scanResource.entry != null && scanResource.entry.isDirectory());
-	}
 }

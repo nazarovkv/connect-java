@@ -59,7 +59,7 @@ public class RedisSessionDataStore extends AbstractSessionDataStore {
   public void doStore(String id, SessionData data, long lastSaveTime) throws Exception {
     final Map<String, String> toStore = sessionToMap(data);
 
-    log.debug("[RedisSessionManager] storeSession - Storing session id={}", data.getVhost());
+    log.debug("[RedisSessionManager] storeSession - Storing session id={}", data.getId());
 
     jedisPool.execute("sessionStore", jedis -> {
       data.setLastSaved(System.currentTimeMillis());

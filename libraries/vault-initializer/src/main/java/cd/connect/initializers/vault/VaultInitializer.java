@@ -18,7 +18,11 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author Richard Vowles - https://plus.google.com/+RichardVowles
@@ -73,16 +77,51 @@ public class VaultInitializer implements BatheInitializer {
     return val == null ? def : val;
   }
 
+  private boolean failed = false;
+
   private void loadVaultKeys(Vault vault, List<VaultKey> vaultKeys) {
       vaultKeys.parallelStream().forEach(vaultKey -> {
         try {
-          final String val = vault.logical().read(vaultKey.getVaultKeyName()).getData().get("value");
-          System.setProperty(vaultKey.getSystemPropertyFieldName(), val);
-          log.info("vault: set key {} from vault.", vaultKey.getSystemPropertyFieldName());
+          log.info("requesting {}", vaultKey.getVaultKeyName());
+          Map<String, String> data = vault.logical().read(vaultKey.getVaultKeyName()).getData();
+          if (vaultKey.treatAsMap) {
+            StringBuilder keyValues = new StringBuilder();
+            StringBuilder kvLog = new StringBuilder();
+            data.forEach((key, value) -> {
+              if (keyValues.length() > 0) {
+                keyValues.append(",");
+                kvLog.append(",");
+              }
+              keyValues.append(String.format("%s=%s", key, value));
+              kvLog.append(String.format("%s=******", key));
+            });
+            System.setProperty(vaultKey.getSystemPropertyFieldName(), keyValues.toString());
+            log.info("vault: set property `{}` to similar to `{}`.", vaultKey.getSystemPropertyFieldName(), kvLog.toString());
+          } else if (vaultKey.subPropertyFieldNames.size() == 0) {
+            final String val = data.get("value");
+            System.setProperty(vaultKey.getSystemPropertyFieldName(), val);
+            log.info("vault: set property `{}` from vault key `{}`.", vaultKey.getSystemPropertyFieldName(), vaultKey.getVaultKeyName());
+          } else {
+            vaultKey.subPropertyFieldNames.forEach( (subkey, propertySubName) -> {
+              String val = data.get(subkey);
+              if (val != null) {
+                String subKeyName = vaultKey.getSystemPropertyFieldName() + "." + propertySubName;
+                System.setProperty(subKeyName, val);
+                log.info("vault: set property `{}` from vault key `{}`.", subKeyName, vaultKey.getVaultKeyName());
+              } else {
+                log.error("Attempted to get subkey `{}` and it is not in the Vault map.", subkey);
+              }
+            });
+          }
         } catch (VaultException e) {
-          throw new RuntimeException(e);
+        	failed = true;
+          log.error("failed when requesting " + vaultKey.vaultKeyName, e);
         }
       });
+
+      if (failed) {
+        throw new RuntimeException("Vault initialization failed, please view logs.");
+      }
   }
 
   private Vault configureVaultClient() throws VaultException {
@@ -92,13 +131,16 @@ public class VaultInitializer implements BatheInitializer {
       throw new RuntimeException("Vault keys were discovered but we have no Vault Server.");
     }
 
-    String vaultJwtTokenFile = getenv("VAULT_TOKENFILE", "/var/run/secrets/kubernetes.io/serviceaccount/token");
-    String vaultCertFile = getenv("VAULT_CERTFILE", "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt");
+    String vaultJwtTokenFile = getenv("VAULT_TOKENFILE", System.getProperty("vault.tokenFile", "/var/run/secrets/kubernetes.io/serviceaccount/token"));
+    String vaultCertFile = getenv("VAULT_CERTFILE", System.getProperty("vault.certFile", "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"));
     String vaultRole = System.getProperty("vault.role", System.getProperty("app.name"));
     String vaultJwtToken = System.getenv("VAULT_TOKEN");
 
     if (vaultJwtToken == null) {
       vaultJwtToken = readFile(vaultJwtTokenFile, Charset.forName("UTF-8"));
+      if (vaultJwtToken.endsWith("\n")) {
+        vaultJwtToken = vaultJwtToken.substring(0, vaultJwtToken.length() - 1);
+      }
     }
 
     final VaultConfig config =
@@ -136,7 +178,8 @@ public class VaultInitializer implements BatheInitializer {
         final String requestJson = Json.object().add("jwt", vaultJwtToken).add("role", vaultRole).toString();
         final RestResponse restResponse = new Rest()//NOPMD
           .url(config.getAddress() + getenv("VAULT_ROLE_URL", "/v1/auth/kubernetes/login"))
-          .body(requestJson.getBytes("UTF-8"))
+          .header("Content-type", "application/json")
+          .body(requestJson.getBytes(Charset.forName("UTF-8")))
           .connectTimeoutSeconds(config.getOpenTimeout())
           .readTimeoutSeconds(config.getReadTimeout())
           .sslVerification(config.getSslConfig().isVerify())
@@ -145,6 +188,9 @@ public class VaultInitializer implements BatheInitializer {
 
         // Validate restResponse
         if (restResponse.getStatus() != 200) {
+          if (restResponse.getBody() != null) {
+            log.error("Vault body is {}", new String(restResponse.getBody(), Charset.forName("UTF-8")));
+          }
           throw new VaultException("Vault responded with HTTP status code: " + restResponse.getStatus(), restResponse.getStatus());
         }
         final String mimeType = restResponse.getMimeType() == null ? "null" : restResponse.getMimeType();
@@ -169,36 +215,23 @@ public class VaultInitializer implements BatheInitializer {
     }
   }
 
-  class VaultKey {
-    private final String systemPropertyFieldName;
-    private final String vaultKeyName;
-
-    public String getSystemPropertyFieldName() {
-      return systemPropertyFieldName;
-    }
-
-    public String getVaultKeyName() {
-      return vaultKeyName;
-    }
-
-    public VaultKey(String systemPropertyFieldName, String vaultKeyName) {
-      this.systemPropertyFieldName = systemPropertyFieldName;
-      this.vaultKeyName = vaultKeyName;
-    }
-  }
-
   List<VaultKey> discoverFields() {
     List<VaultKey> vaultKeys = new ArrayList<>();
 
-    System.getProperties().entrySet().forEach( entry -> {
-      String key = entry.getKey().toString();
-      String value = entry.getValue().toString();
+    System.getProperties().forEach((key1, value1) -> {
+      String key = key1.toString();
+      String value = value1.toString();
 
       if (value.startsWith(VAULT_KEY_PREFIX)) {
         String part = value.substring(VAULT_KEY_PREFIX.length()).trim();
+        boolean treatAsMap = false;
+        if (part.endsWith("!")) {
+          treatAsMap = true;
+          part = part.substring(0, part.length()-1);
+        }
 
         log.debug("vault key: {} looking for {}", key, part);
-        vaultKeys.add(new VaultKey(key, part));
+        vaultKeys.add(new VaultKey(key, part, treatAsMap));
       }
     });
 

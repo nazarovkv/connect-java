@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>cd.connect.pipeline</groupId>
+	<artifactId>module-1</artifactId>
+	<version>1.1-SNAPSHOT</version>
+	<name>module-1</name>
+	
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>cd.connect.pipeline</groupId>
+				<artifactId>docker-manifest-collectosaur-plugin</artifactId>
+				<version>@project.version@</version>
+				<executions>
+					<execution>
+						<id>babysaur</id>
+						<phase>compile</phase>
+						<goals>
+							<goal>babysaur</goal>
+						</goals>
+						<configuration>
+							<baseImageName>${project.artifactId}</baseImageName>
+							<fullImageName>blah/${project.artifactId}</fullImageName>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>

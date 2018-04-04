@@ -4,7 +4,7 @@
 
   <groupId>cd.connect.jetty</groupId>
   <artifactId>jetty-redis-session-store</artifactId>
-  <version>1.2-SNAPSHOT</version>
+  <version>1.3-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>jetty-redis-session-store</name>
