@@ -5,18 +5,7 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
 import com.amazonaws.auth.profile.ProfileCredentialsProvider
 import com.amazonaws.services.rds.AmazonRDS
 import com.amazonaws.services.rds.AmazonRDSClientBuilder
-import com.amazonaws.services.rds.model.CreateDBSnapshotRequest
-import com.amazonaws.services.rds.model.DBInstance
-import com.amazonaws.services.rds.model.DBInstanceNotFoundException
-import com.amazonaws.services.rds.model.DeleteDBInstanceRequest
-import com.amazonaws.services.rds.model.DescribeDBInstancesRequest
-import com.amazonaws.services.rds.model.DescribeDBSnapshotsRequest
-import com.amazonaws.services.rds.model.DescribeDBSnapshotsResult
-import com.amazonaws.services.rds.model.RestoreDBInstanceFromDBSnapshotRequest
-import com.amazonaws.services.sqs.AmazonSQS
-import com.amazonaws.services.sqs.AmazonSQSAsyncClient
-import com.amazonaws.services.sqs.AmazonSQSAsyncClientBuilder
-import com.amazonaws.services.sqs.AmazonSQSClientBuilder
+import com.amazonaws.services.rds.model.*
 import groovy.transform.CompileStatic
 
 import java.util.concurrent.atomic.AtomicBoolean
@@ -27,13 +16,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 @CompileStatic
 class RdsClone {
 	AmazonRDS rdsClient;
-	AmazonSQS sqsClient;
-	//String rdsTopic = 'global-rds-event-topic'
-	String rdsQueue = 'global-rds-event-queue'
-	List<Closure> outstandingActions = []
-	AtomicBoolean stop = new AtomicBoolean()
-	AtomicBoolean started = new AtomicBoolean()
-	RdsConsumer rdsConsumer
 
 	void initialize(String profile = null) {
 		AWSCredentialsProviderChain chain = new DefaultAWSCredentialsProviderChain()
@@ -43,22 +25,10 @@ class RdsClone {
 		}
 
 		rdsClient = AmazonRDSClientBuilder.standard().withCredentials(chain).build()
-		sqsClient = AmazonSQSAsyncClientBuilder.standard().withCredentials(chain).build()
-
-		rdsConsumer = new RdsConsumer(sqsClient, rdsQueue, stop)
-		rdsConsumer.start()
 	}
 
-	void initializeAndCleanQueue(String qName = null) {
-		if (qName) {
-			this.rdsQueue = qName
-		}
-
-
-	}
-
-	void snapshotDatabase(String database) {
-		String snapshotName = database + "-" + System.currentTimeMillis()
+	String snapshotDatabase(String database, int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds, String snapshotOverride) {
+		String snapshotName = snapshotOverride ?: database + "-" + System.currentTimeMillis()
 		long start = System.currentTimeMillis()
 		CreateDBSnapshotRequest snap = new CreateDBSnapshotRequest()
 		  .withDBInstanceIdentifier(database)
@@ -66,21 +36,33 @@ class RdsClone {
 		long end = System.currentTimeMillis()
 
 		println "snapshot ${snapshotName} created in ${(end-start)}ms";
+
+		boolean success = waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, { ->
+			return "available".equals(snapshotStatus(snapshotName, database))
+		});
+
+		return success ? snapshotName : null;
+	}
+
+	String snapshotStatus(String snapshot, String database) {
+		return rdsClient.describeDBSnapshots(new DescribeDBSnapshotsRequest()
+			.withDBInstanceIdentifier(database)
+		  .withDBSnapshotIdentifier(snapshot))?.getDBSnapshots()?.first().getStatus()
 	}
 
 	List<String> discoverSnapshots(String database) {
-		DescribeDBSnapshotsResult snapshots = rdsClient.describeDBSnapshots(new DescribeDBSnapshotsRequest().withDBInstanceIdentifier(database))
+		DescribeDBSnapshotsResult snapshots = rdsClient.describeDBSnapshots(new DescribeDBSnapshotsRequest()
+			.withDBInstanceIdentifier(database)
+		)
 
 		return snapshots.DBSnapshots.collect({ it.getDBSnapshotIdentifier() })
 	}
 
-	void createDatabaseInstanceFromSnapshot(String database, String snapshot, Closure completed) {
+	void createDatabaseInstanceFromSnapshot(String database, String snapshot, int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds, CreateInstanceResult completed) {
 		try {
 			rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database))
 			throw new RuntimeException("Database already exists, please rename before restoring.")
-		} catch (DBInstanceNotFoundException dinfe) {
-
-		}
+		} catch (DBInstanceNotFoundException dinfe) {}
 
 		long end = System.currentTimeMillis()
 
@@ -89,17 +71,36 @@ class RdsClone {
 			.withDBInstanceIdentifier(database)
 		  .withDBSnapshotIdentifier(snapshot))
 
-		if (completed) {
-			rdsConsumer.addListener { RdsEvent event ->
-				if (event.source == RdsEvent.SourceType.INSTANCE && event.event == )
-			}
-			outstandingActions.add({ evt ->
+		println "created ${database} from instance ${snapshot} in ${end-start}ms"
 
-			})
+		boolean success = waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, { ->
+			return "available".equals(databaseStatus(database))
+		});
+
+		if (completed) {
+			completed.result(success, instance)
+		}
+	}
+
+	// defaults to success = true if we aren't waiting for it
+	protected boolean waitFor(int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds, Closure criteria) {
+		boolean success = true;
+
+		int waitPeriodInSeconds = waitPeriodInMinutes * 60
+
+		while (waitPeriodPollTimeInSeconds > 0 && waitPeriodInSeconds > 0) {
+			success = criteria()
+
+			if (success) {
+				break
+			}
+
+			waitPeriodInSeconds -= waitPeriodPollTimeInSeconds
+
+			println "${waitPeriodInSeconds} seconds left..."
 		}
 
-		println "created ${database} from instance ${snapshot} in ${end-start}ms"
-		println instance
+		return success
 	}
 
 	void deleteDatabaseInstance(String database) {
@@ -111,16 +112,19 @@ class RdsClone {
 		return rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database)).DBInstances.first().DBInstanceStatus
 	}
 
+
+
 	public static void main(String[] args) {
 		def rds = new RdsClone();
 		rds.initialize()
 //		rds.createDatabaseInstanceFromSnapshot("fishandchips", "productioncd-master-mysql-sanitized-1482538522")
-		println "status ${rds.databaseStatus('fishandchips')}"
+//		println "status ${rds.databaseStatus('cd12-master-1522796062')}"
+		println "snapshots = ${rds.discoverSnapshots('productioncd-master')}"
 
-		Thread.sleep(5000)
-		println "shutting down q"
-		rds.stop.set(true)
-		Thread.sleep(5000)
-		println "finished"
+//		Thread.sleep(5000)
+//		println "shutting down q"
+//		rds.stop.set(true)
+//		Thread.sleep(5000)
+//		println "finished"
 	}
 }
