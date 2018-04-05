@@ -105,26 +105,18 @@ class RdsClone {
 
 	void deleteDatabaseInstance(String database) {
 		DBInstance instance = rdsClient.deleteDBInstance(new DeleteDBInstanceRequest().withDBInstanceIdentifier(database))
-		println "instance deleting."
 	}
 
 	String databaseStatus(String database) {
-		return rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database)).DBInstances.first().DBInstanceStatus
+		return getDatabaseInstance(database)?.DBInstanceStatus
+	}
+	
+
+	DBInstance getDatabaseInstance(String database) {
+		return rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database)).DBInstances?.first()
 	}
 
-
-
-	public static void main(String[] args) {
-		def rds = new RdsClone();
-		rds.initialize()
-//		rds.createDatabaseInstanceFromSnapshot("fishandchips", "productioncd-master-mysql-sanitized-1482538522")
-//		println "status ${rds.databaseStatus('cd12-master-1522796062')}"
-		println "snapshots = ${rds.discoverSnapshots('productioncd-master')}"
-
-//		Thread.sleep(5000)
-//		println "shutting down q"
-//		rds.stop.set(true)
-//		Thread.sleep(5000)
-//		println "finished"
+	void deleteDatabaseSnapshot(String snapshot) {
+		rdsClient.deleteDBSnapshot(new DeleteDBSnapshotRequest().withDBSnapshotIdentifier(snapshot))
 	}
 }
