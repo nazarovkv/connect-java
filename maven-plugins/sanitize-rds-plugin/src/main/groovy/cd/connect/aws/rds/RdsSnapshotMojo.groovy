@@ -14,12 +14,10 @@ import org.apache.maven.plugins.annotations.ResolutionScope
 	defaultPhase = LifecyclePhase.NONE,
 	requiresProject = false,
 	requiresDependencyResolution = ResolutionScope.NONE, threadSafe = true)
-class RdsSnapshotMojo extends BaseSnapshotAndRestoreMojo {
+class RdsSnapshotMojo extends BaseSnapshotMojo {
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		init()
 		snapshot()
-
-
 	}
 }
