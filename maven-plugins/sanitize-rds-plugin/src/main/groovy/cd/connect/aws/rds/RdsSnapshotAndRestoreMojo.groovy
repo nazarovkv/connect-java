@@ -21,17 +21,17 @@ import org.apache.maven.plugins.annotations.ResolutionScope
 class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 	@Parameter(property = "rds-restore.hostname")
 	String hostname
-	@Parameter(property = "rds-restore.dumpCommand", required = true)
+	@Parameter(property = "rds-restore.dumpCommand")
 	String dumpCommand;
 	@Parameter(property = "rds-restore.dumpFolder")
 	String dumpFolder = "dump";
-	@Parameter(property = "rds-restore.schemas", required = true)
+	@Parameter(property = "rds-restore.schemas")
 	List<String> schemas;
-	@Parameter(property = "rds-restore.executeSqlCommand", required = true)
+	@Parameter(property = "rds-restore.executeSqlCommand")
 	String executeSqlCommand;
 	@Parameter(property = "rds-restore.sanitizeFolder")
 	String sanitizeFolder = "src/sql"
-	@Parameter(property = "rds-restore.sanitizeSqls", required = true)
+	@Parameter(property = "rds-restore.sanitizeSqls")
 	List<String> sanitizeSqls;
 	@Parameter(property = "rds-restore.use-snapshot")
 	String useSnapshot
@@ -47,6 +47,9 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 	boolean cleanSnapshot = false
 	@Parameter(property = "rds-restore.parallel-dump")
 	boolean parallelDump = false
+	@Parameter(property = "rds-restore.into-database")
+	String intoDatabase
+	boolean skip
 
 	private String createCommand(String base, String msg, String hostName) {
 		String cwd = new File('.').absolutePath
@@ -62,6 +65,8 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 
 	@Override
 	void execute() throws MojoExecutionException, MojoFailureException {
+		if (skip) { return }
+
 		init()
 
 		if (!useSnapshot) {
@@ -77,6 +82,8 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 
 		String hostName
 
+		String sanitizeName = intoDatabase ?: database + "-sanitize"
+
 		if (skipRestore) {
 			if (hostname) {
 				hostName = hostname
@@ -86,11 +93,13 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 				hostName = (db.getEndpoint().address + ":" + db.getEndpoint().port)
 			}
 		} else {
-			if (rdsClone.getDatabaseInstance(database + "-sanitize")) {
+
+			if (rdsClone.getDatabaseInstance(sanitizeName)) {
 				getLog().info("cleaning old sanitize copy from snapshot")
-				rdsClone.deleteDatabaseInstance(database + "-sanitize")
+				rdsClone.deleteDatabaseInstance(sanitizeName, restoreWaitInMinutes, pollTimeInSeconds)
 			}
-			restoreSnapshot(database + "-sanitize", realSnapshotName, { boolean success, DBInstance instance ->
+
+			restoreSnapshot(sanitizeName, realSnapshotName, { boolean success, DBInstance instance ->
 				db = instance
 			})
 
@@ -136,7 +145,7 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 		}
 
 		if (cleanSanitize) {
-			rdsClone.deleteDatabaseInstance(database + "-sanitize")
+			rdsClone.deleteDatabaseInstance(sanitizeName, 0, 0)
 		}
 	}
 

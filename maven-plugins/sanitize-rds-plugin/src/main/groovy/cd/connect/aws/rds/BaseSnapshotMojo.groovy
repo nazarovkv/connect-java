@@ -10,9 +10,9 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 
 	@Parameter(property = "rds-clone.database", required = true)
 	String database
-	@Parameter(property = "rds-clone.username", required = true)
+	@Parameter(property = "rds-clone.username")
 	String username
-	@Parameter(property = "rds-clone.password", required = true)
+	@Parameter(property = "rds-clone.password")
 	String password
 	@Parameter(property = "rds-clone.snapshot-wait")
 	int snapshotWaitInMinutes = 20
@@ -22,12 +22,15 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 	int pollTimeInSeconds = 20
 	@Parameter(property = "rds-clone.snapshotName")
 	String snapshotName
+	@Parameter(property = "rds-clone.aws-profile")
+	String awsProfile
 
 	protected RdsClone rdsClone;
 	protected String realSnapshotName;
 
 	protected void init() {
 		rdsClone = new RdsClone()
+		rdsClone.initialize(awsProfile)
 	}
 	protected String snapshot() throws MojoFailureException {
 		realSnapshotName = rdsClone.snapshotDatabase(database, snapshotWaitInMinutes, pollTimeInSeconds, snapshotName)
@@ -37,6 +40,12 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 	}
 
 	protected void restoreSnapshot(String dbName, String snapshotName, CreateInstanceResult createInstanceResult) {
+		if (rdsClone.snapshotStatus(snapshotName, database) == null) {
+			String err = "There is no Snapshot called ${snapshotName} for db ${dbName}";
+			getLog().error(err)
+			throw new MojoFailureException(err)
+		}
+
 		rdsClone.createDatabaseInstanceFromSnapshot(dbName, snapshotName, restoreWaitInMinutes, pollTimeInSeconds, createInstanceResult)
 	}
 }

@@ -33,9 +33,12 @@ class RdsClone {
 		CreateDBSnapshotRequest snap = new CreateDBSnapshotRequest()
 		  .withDBInstanceIdentifier(database)
 			.withDBSnapshotIdentifier(snapshotName)
+
+		rdsClient.createDBSnapshot(snap)
+
 		long end = System.currentTimeMillis()
 
-		println "snapshot ${snapshotName} created in ${(end-start)}ms";
+		println "snapshot ${snapshotName} created in ${(end-start)}ms (${snap}";
 
 		boolean success = waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, { ->
 			return "available".equals(snapshotStatus(snapshotName, database))
@@ -45,9 +48,19 @@ class RdsClone {
 	}
 
 	String snapshotStatus(String snapshot, String database) {
-		return rdsClient.describeDBSnapshots(new DescribeDBSnapshotsRequest()
-			.withDBInstanceIdentifier(database)
-		  .withDBSnapshotIdentifier(snapshot))?.getDBSnapshots()?.first().getStatus()
+		try {
+			DescribeDBSnapshotsResult snapshots = rdsClient.describeDBSnapshots(new DescribeDBSnapshotsRequest()
+				.withDBInstanceIdentifier(database)
+				.withDBSnapshotIdentifier(snapshot))
+			println "snapshots are ${snapshots} for ${snapshot} and db ${database}"
+			if (snapshots && snapshots.getDBSnapshots() != null && snapshots.getDBSnapshots().size() > 0) {
+				return snapshots.getDBSnapshots().first().getStatus()
+			}
+
+			return null
+		} catch (Exception e) {
+			return null
+		}
 	}
 
 	List<String> discoverSnapshots(String database) {
@@ -61,7 +74,8 @@ class RdsClone {
 	void createDatabaseInstanceFromSnapshot(String database, String snapshot, int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds, CreateInstanceResult completed) {
 		try {
 			rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database))
-			throw new RuntimeException("Database already exists, please rename before restoring.")
+
+			deleteDatabaseInstance(database, waitPeriodInMinutes, waitPeriodPollTimeInSeconds)
 		} catch (DBInstanceNotFoundException dinfe) {}
 
 		long end = System.currentTimeMillis()
@@ -95,6 +109,8 @@ class RdsClone {
 				break
 			}
 
+			Thread.sleep(waitPeriodPollTimeInSeconds * 1000)
+
 			waitPeriodInSeconds -= waitPeriodPollTimeInSeconds
 
 			println "${waitPeriodInSeconds} seconds left..."
@@ -103,8 +119,16 @@ class RdsClone {
 		return success
 	}
 
-	void deleteDatabaseInstance(String database) {
-		DBInstance instance = rdsClient.deleteDBInstance(new DeleteDBInstanceRequest().withDBInstanceIdentifier(database))
+	void deleteDatabaseInstance(String database, int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds) {
+		DBInstance instance = rdsClient.deleteDBInstance(new DeleteDBInstanceRequest().withDBInstanceIdentifier(database).withSkipFinalSnapshot(true))
+
+		if (waitPeriodInMinutes) {
+			println "waiting for deletion"
+			waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, {
+				// when the database has gone away...
+				return rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database)).DBInstances.size() == 0
+			})
+		}
 	}
 
 	String databaseStatus(String database) {
@@ -113,7 +137,13 @@ class RdsClone {
 	
 
 	DBInstance getDatabaseInstance(String database) {
-		return rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database)).DBInstances?.first()
+		try {
+			def instances = rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database))
+			println "instances = ${instances}"
+			return instances?.DBInstances?.first()
+		} catch (Exception e) {
+			return null
+		}
 	}
 
 	void deleteDatabaseSnapshot(String snapshot) {
