@@ -1,5 +1,6 @@
 package cd.connect.aws.rds
 
+import com.amazonaws.services.rds.model.DBInstance
 import groovy.transform.CompileStatic
 import org.apache.maven.plugin.AbstractMojo
 import org.apache.maven.plugin.MojoFailureException
@@ -25,6 +26,8 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 	String snapshotName
 	@Parameter(property = "rds-clone.aws-profile")
 	String awsProfile
+	@Parameter(property = 'rds-clone.vpc-group-name')
+	String vpcGroupName
 
 	@Parameter(defaultValue = '${project}', readonly = true)
 	MavenProject project;
@@ -37,6 +40,10 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 		rdsClone.initialize(awsProfile)
 	}
 	protected String snapshot() throws MojoFailureException {
+		DBInstance instance = rdsClone.getDatabaseInstance(database)
+		if (!vpcGroupName && instance) {
+			vpcGroupName = instance.DBSubnetGroup?.DBSubnetGroupName
+		}
 		realSnapshotName = rdsClone.snapshotDatabase(database, snapshotWaitInMinutes, pollTimeInSeconds, snapshotName)
 		if (!realSnapshotName) {
 			throw new MojoFailureException("Unable to create snapshot within timeframe")
@@ -50,7 +57,9 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 			throw new MojoFailureException(err)
 		}
 
-		rdsClone.createDatabaseInstanceFromSnapshot(dbName, snapshotName, restoreWaitInMinutes, pollTimeInSeconds, createInstanceResult)
+		getLog().info("Restoring snapshot `${snapshotName}` into database `${dbName}` using vpc subnet `${vpcGroupName?:'default'}")
+
+		rdsClone.createDatabaseInstanceFromSnapshot(dbName, snapshotName, vpcGroupName, restoreWaitInMinutes, pollTimeInSeconds, createInstanceResult)
 	}
 }
 

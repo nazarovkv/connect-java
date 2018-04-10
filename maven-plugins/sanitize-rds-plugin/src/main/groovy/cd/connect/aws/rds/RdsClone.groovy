@@ -71,7 +71,7 @@ class RdsClone {
 		return snapshots.DBSnapshots.collect({ it.getDBSnapshotIdentifier() })
 	}
 
-	void createDatabaseInstanceFromSnapshot(String database, String snapshot, int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds, CreateInstanceResult completed) {
+	void createDatabaseInstanceFromSnapshot(String database, String snapshot, String vpc, int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds, CreateInstanceResult completed) {
 		try {
 			rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database))
 
@@ -81,9 +81,16 @@ class RdsClone {
 		long end = System.currentTimeMillis()
 
 		long start = System.currentTimeMillis()
-		DBInstance instance = rdsClient.restoreDBInstanceFromDBSnapshot(new RestoreDBInstanceFromDBSnapshotRequest()
+		def restoreRequest = new RestoreDBInstanceFromDBSnapshotRequest()
 			.withDBInstanceIdentifier(database)
-		  .withDBSnapshotIdentifier(snapshot))
+			.withDBSnapshotIdentifier(snapshot)
+
+		if (vpc) {
+			restoreRequest.withDBSubnetGroupName(vpc)
+		}
+
+		DBInstance instance = rdsClient.restoreDBInstanceFromDBSnapshot(restoreRequest
+		)
 
 		println "created ${database} from instance ${snapshot} in ${end-start}ms"
 
@@ -92,7 +99,7 @@ class RdsClone {
 		});
 
 		if (completed) {
-			completed.result(success, instance)
+			completed.result(success, getDatabaseInstance(database))
 		}
 	}
 
