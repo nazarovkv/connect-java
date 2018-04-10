@@ -33,8 +33,10 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 	String sanitizeFolder = "src/sql"
 	@Parameter(property = "rds-restore.sanitizeSqls")
 	List<String> sanitizeSqls;
-	@Parameter(property = "rds-restore.use-snapshot")
-	String useSnapshot
+	@Parameter(property = "rds-restore.snapshot-name-override")
+	String snapshotNameOverride
+	@Parameter(property = "rds-restore.skip-snapshot")
+	boolean skipSnapshot
 	@Parameter(property = "rds-restore.skip-restore")
 	boolean skipRestore = false
 	@Parameter(property = "rds-restore.skip-sanitize")
@@ -49,6 +51,7 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 	boolean parallelDump = false
 	@Parameter(property = "rds-restore.into-database")
 	String intoDatabase
+	@Parameter(property = "rds-restore.skip-rds") // this makes no sense as a property, but we can't is it in an execution if we don't have this
 	boolean skip
 
 	private String createCommand(String base, String msg, String hostName) {
@@ -67,47 +70,65 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 	void execute() throws MojoExecutionException, MojoFailureException {
 		if (skip) { return }
 
+
+		getLog().info("Skip snapshot ${skipSnapshot}, restore ${skipRestore}, sanitize ${skipSanitize}, snapshotNameOverride `${snapshotNameOverride}`")
+
+		if (skipSnapshot) {
+			if (!skipRestore && !snapshotNameOverride) {
+				throw new MojoFailureException("If you are going to skip snapshot but do a restore, you need to specify the snapshotNameOverride")
+			}
+
+			if (snapshotNameOverride) {
+				realSnapshotName = snapshotNameOverride
+				cleanSnapshot = false // never clean this
+			}
+		}
+
+		if (!skipSnapshot && snapshotNameOverride) {
+			throw new MojoFailureException("Snapshoting and overriding the snapshot name make no sense, if you wish to set the snapshot name, use snapshotName")
+		}
+
 		init()
 
-		if (!useSnapshot) {
+		if (!skipSnapshot) {
 			snapshot()
-		} else {
-			realSnapshotName = useSnapshot
-			cleanSnapshot = false // never clean this
 		}
 
 		DBInstance db = null;
-
-		getLog().info("Skip restore ${skipRestore}, sanitize ${skipSanitize}, useSnapshot ${useSnapshot}")
 
 		String hostName
 
 		String sanitizeName = intoDatabase ?: database + "-sanitize"
 
 		if (skipRestore) {
+			cleanSanitize = false // never clean this
+
 			if (hostname) {
 				hostName = hostname
 			} else {
 				db = rdsClone.getDatabaseInstance(database)
-				cleanSanitize = false // never clean this
+				getLog().info("db endpoint ${db.endpoint.toString()}")
 				hostName = (db.getEndpoint().address + ":" + db.getEndpoint().port)
 			}
 		} else {
-
 			if (rdsClone.getDatabaseInstance(sanitizeName)) {
 				getLog().info("cleaning old sanitize copy from snapshot")
 				rdsClone.deleteDatabaseInstance(sanitizeName, restoreWaitInMinutes, pollTimeInSeconds)
 			}
 
 			restoreSnapshot(sanitizeName, realSnapshotName, { boolean success, DBInstance instance ->
+				println "instance set"
 				db = instance
 			})
 
+			println "db instance? ${db}"
+
+			getLog().info("db endpoint ${db.endpoint.toString()}")
 			hostName = (db.getEndpoint().address + ":" + db.getEndpoint().port)
 		}
 
 		if (!skipSanitize) {
-			File sanitizeFolder = new File(sanitizeFolder)
+			File sanitizeFolder = new File(project.basedir, sanitizeFolder)
 			String command = createCommand(executeSqlCommand, "sanitize sql", hostName)
 				.replace('$sanitizeFolder', sanitizeFolder.absolutePath)
 
@@ -126,7 +147,7 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 		}
 
 		if (!skipDump) {
-			File dFolder = new File(dumpFolder)
+			File dFolder = new File(project.basedir, dumpFolder)
 			dFolder.mkdirs()
 			String command = createCommand(dumpCommand, "db dump", hostName)
 			if (!parallelDump) {

@@ -120,13 +120,19 @@ class RdsClone {
 	}
 
 	void deleteDatabaseInstance(String database, int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds) {
-		DBInstance instance = rdsClient.deleteDBInstance(new DeleteDBInstanceRequest().withDBInstanceIdentifier(database).withSkipFinalSnapshot(true))
+		rdsClient.deleteDBInstance(new DeleteDBInstanceRequest().withDBInstanceIdentifier(database).withSkipFinalSnapshot(true))
 
 		if (waitPeriodInMinutes) {
 			println "waiting for deletion"
 			waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, {
 				// when the database has gone away...
-				return rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database)).DBInstances.size() == 0
+				try {
+					rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database))
+					
+					return false
+				} catch (DBInstanceNotFoundException nfe) {
+					return true
+				}
 			})
 		}
 	}

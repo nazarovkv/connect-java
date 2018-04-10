@@ -4,6 +4,7 @@ import groovy.transform.CompileStatic
 import org.apache.maven.plugin.AbstractMojo
 import org.apache.maven.plugin.MojoFailureException
 import org.apache.maven.plugins.annotations.Parameter
+import org.apache.maven.project.MavenProject
 
 @CompileStatic
 abstract public class BaseSnapshotMojo extends AbstractMojo {
@@ -24,6 +25,9 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 	String snapshotName
 	@Parameter(property = "rds-clone.aws-profile")
 	String awsProfile
+
+	@Parameter(defaultValue = '${project}', readonly = true)
+	MavenProject project;
 
 	protected RdsClone rdsClone;
 	protected String realSnapshotName;
