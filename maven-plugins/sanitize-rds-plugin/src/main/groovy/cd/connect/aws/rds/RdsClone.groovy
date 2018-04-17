@@ -71,7 +71,10 @@ class RdsClone {
 		return snapshots.DBSnapshots.collect({ it.getDBSnapshotIdentifier() })
 	}
 
-	void createDatabaseInstanceFromSnapshot(String database, String snapshot, String vpc, int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds, CreateInstanceResult completed) {
+	void createDatabaseInstanceFromSnapshot(String database, String snapshot, String vpc,
+	                                        List<VpcSecurityGroupMembership> snapshotVpcSecurityGroups,
+	                                        List<DBSecurityGroupMembership> dbSecurityGroups,
+	                                        int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds, CreateInstanceResult completed) {
 		try {
 			rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database))
 
@@ -85,18 +88,35 @@ class RdsClone {
 			.withDBInstanceIdentifier(database)
 			.withDBSnapshotIdentifier(snapshot)
 
+
 		if (vpc) {
 			restoreRequest.withDBSubnetGroupName(vpc)
 		}
 
-		DBInstance instance = rdsClient.restoreDBInstanceFromDBSnapshot(restoreRequest
-		)
+		DBInstance instance = rdsClient.restoreDBInstanceFromDBSnapshot(restoreRequest)
 
 		println "created ${database} from instance ${snapshot} in ${end-start}ms"
 
 		boolean success = waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, { ->
 			return "available".equals(databaseStatus(database))
-		});
+		})
+
+		if (success) {
+			if (snapshotVpcSecurityGroups || dbSecurityGroups) {
+				def m = new ModifyDBInstanceRequest().withDBInstanceIdentifier(instance.getDBInstanceIdentifier())
+				if (snapshotVpcSecurityGroups) {
+					m.withVpcSecurityGroupIds(snapshotVpcSecurityGroups.collect({it.vpcSecurityGroupId}))
+				}
+				if (dbSecurityGroups) {
+					m.withDBSecurityGroups(dbSecurityGroups.collect({it.getDBSecurityGroupName()}))
+				}
+				rdsClient.modifyDBInstance(m)
+			}
+
+			success = waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, { ->
+				return "available".equals(databaseStatus(database))
+			})
+		}
 
 		if (completed) {
 			completed.result(success, getDatabaseInstance(database))

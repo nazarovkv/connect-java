@@ -1,6 +1,8 @@
 package cd.connect.aws.rds
 
 import com.amazonaws.services.rds.model.DBInstance
+import com.amazonaws.services.rds.model.DBSecurityGroupMembership
+import com.amazonaws.services.rds.model.VpcSecurityGroupMembership
 import groovy.transform.CompileStatic
 import org.apache.maven.plugin.AbstractMojo
 import org.apache.maven.plugin.MojoFailureException
@@ -34,6 +36,8 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 
 	protected RdsClone rdsClone;
 	protected String realSnapshotName;
+	protected List<VpcSecurityGroupMembership> snapshotVpcSecurityGroups
+	protected List<DBSecurityGroupMembership> dbSecurityGroups
 
 	protected void init() {
 		rdsClone = new RdsClone()
@@ -43,6 +47,8 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 		DBInstance instance = rdsClone.getDatabaseInstance(database)
 		if (!vpcGroupName && instance) {
 			vpcGroupName = instance.DBSubnetGroup?.DBSubnetGroupName
+			snapshotVpcSecurityGroups = instance.vpcSecurityGroups
+			dbSecurityGroups = instance.DBSecurityGroups
 		}
 		realSnapshotName = rdsClone.snapshotDatabase(database, snapshotWaitInMinutes, pollTimeInSeconds, snapshotName)
 		if (!realSnapshotName) {
@@ -59,7 +65,9 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 
 		getLog().info("Restoring snapshot `${snapshotName}` into database `${dbName}` using vpc subnet `${vpcGroupName?:'default'}")
 
-		rdsClone.createDatabaseInstanceFromSnapshot(dbName, snapshotName, vpcGroupName, restoreWaitInMinutes, pollTimeInSeconds, createInstanceResult)
+		rdsClone.createDatabaseInstanceFromSnapshot(dbName, snapshotName, vpcGroupName,
+			snapshotVpcSecurityGroups, dbSecurityGroups,
+			restoreWaitInMinutes, pollTimeInSeconds, createInstanceResult)
 	}
 }
 

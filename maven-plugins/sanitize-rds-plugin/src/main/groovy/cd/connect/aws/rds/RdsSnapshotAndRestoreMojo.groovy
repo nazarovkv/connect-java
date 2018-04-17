@@ -8,6 +8,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase
 import org.apache.maven.plugins.annotations.Mojo
 import org.apache.maven.plugins.annotations.Parameter
 import org.apache.maven.plugins.annotations.ResolutionScope
+import org.codehaus.groovy.runtime.ProcessGroovyMethods
 
 /**
  *
@@ -53,6 +54,8 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 	String intoDatabase
 	@Parameter(property = "rds-restore.skip-rds") // this makes no sense as a property, but we can't is it in an execution if we don't have this
 	boolean skip
+	@Parameter(property = "rds-restore.insertDatabaseCreate")
+	boolean insertDatabaseCreate = true
 
 	private String createCommand(String base, String msg, String hostName) {
 		String cwd = new File('.').absolutePath
@@ -194,15 +197,15 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 					element += item.substring(1)
 				}
 			} else {
-				commands.add(item)
+				commands.add(item.trim())
 			}
 		}
 
 		if (element) {
-			commands.add(element)
+			commands.add(element.trim())
 		}
 
-		println "returning ${commands}"
+		println "returning ${commands}\n${commands.join(' ')}"
 
 		return commands
 	}
@@ -210,8 +213,12 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 	private void dumpSchema(String schema, String command, File dFolder) {
 		getLog().info("dumping $schema")
 		String localCommand = command.replace('$schema', schema)
-		Process p = splitAndKeepQuotesTogether(localCommand).execute()
-		p.consumeProcessOutput(new FileOutputStream(new File(dFolder, "${schema}.sql")),
+		Process p = ProcessGroovyMethods.execute(splitAndKeepQuotesTogether(localCommand), [], dFolder)
+		def sqlStream = new FileOutputStream(new File(dFolder, "${schema}.sql"))
+		if (insertDatabaseCreate) {
+			sqlStream.write("create database ${schema};\n\n".bytes)
+		}
+		p.consumeProcessOutput(sqlStream,
 			new FileOutputStream(new File(dFolder, "${schema}.err")))
 		p.waitFor()
 		getLog().info("Exit Value ${p.exitValue()}")
