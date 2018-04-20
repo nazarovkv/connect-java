@@ -54,8 +54,10 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 	String intoDatabase
 	@Parameter(property = "rds-restore.skip-rds") // this makes no sense as a property, but we can't is it in an execution if we don't have this
 	boolean skip
-	@Parameter(property = "rds-restore.insertDatabaseCreate")
-	boolean insertDatabaseCreate = true
+	@Parameter(property = "rds-restore.dumpPrefix")
+	String dumpPrefix
+	@Parameter(property = "rds-restore.dumpSuffix")
+	String dumpSuffix
 
 	private String createCommand(String base, String msg, String hostName) {
 		String cwd = new File('.').absolutePath
@@ -150,7 +152,7 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 		}
 
 		if (!skipDump) {
-			File dFolder = new File(project.basedir, dumpFolder)
+			File dFolder = dumpFolder.startsWith('/') ? new File(dumpFolder) : new File(project.basedir, dumpFolder)
 			dFolder.mkdirs()
 			String command = createCommand(dumpCommand, "db dump", hostName)
 			if (!parallelDump) {
@@ -215,12 +217,24 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 		String localCommand = command.replace('$schema', schema)
 		Process p = ProcessGroovyMethods.execute(splitAndKeepQuotesTogether(localCommand), [], dFolder)
 		def sqlStream = new FileOutputStream(new File(dFolder, "${schema}.sql"))
-		if (insertDatabaseCreate) {
-			sqlStream.write("create database ${schema};\n\n".bytes)
+		def errStream = new FileOutputStream(new File(dFolder, "${schema}.err"))
+
+		if (dumpPrefix) {
+			sqlStream.write(dumpPrefix.replace('$schema', schema).bytes)
 		}
-		p.consumeProcessOutput(sqlStream,
-			new FileOutputStream(new File(dFolder, "${schema}.err")))
+
+		p.consumeProcessOutput(sqlStream, errStream)
 		p.waitFor()
+
+		if (dumpSuffix) {
+			sqlStream.write(dumpSuffix.replace('$schema', schema).bytes)
+		}
+
+		sqlStream.flush()
+		sqlStream.close()
+		errStream.flush()
+		errStream.close()
+
 		getLog().info("Exit Value ${p.exitValue()}")
 	}
 }
