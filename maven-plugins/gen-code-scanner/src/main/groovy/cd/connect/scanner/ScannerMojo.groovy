@@ -321,24 +321,31 @@ class ScannerMojo extends AbstractMojo {
 					continue
 				}
 
-				String name = td.name.toString()
+				try {
+					String name = td.name.toString()
 
-				ReferenceTypeDeclaration rd = facade.getTypeDeclaration(td)
+					ReferenceTypeDeclaration rd = facade.getTypeDeclaration(td)
 
-				if ((rd.isClass() || rd.isInterface()) && scan.interestingClass(name)) {
-					CollectedClass cc = new CollectedClass(rd, td)
+					if ((rd.isClass() || rd.isInterface()) && scan.interestingClass(name)) {
+						CollectedClass cc = new CollectedClass(rd, td)
 
-					if (scan.requiredAnnotations) {
-						cc.setOriginalAnnotation(findSourceAnnotation(td, scan.requiredAnnotations))
-					}
-
-					if (!scan.requiredAnnotations || cc.annotation) {
-						// this is an interesting class, therefore it should go in all of the groups outlined by the scan
-						addTypeToGroups(scan, cc)
-
-						if (scan.followAnnotations) {
-							discoverFollowingAnnotations(rd, td, scan)
+						if (scan.requiredAnnotations) {
+							cc.setOriginalAnnotation(findSourceAnnotation(td, scan.requiredAnnotations))
 						}
+
+						if (!scan.requiredAnnotations || cc.annotation) {
+							// this is an interesting class, therefore it should go in all of the groups outlined by the scan
+							addTypeToGroups(scan, cc)
+
+							if (scan.followAnnotations) {
+								discoverFollowingAnnotations(rd, td, scan)
+							}
+						}
+					}
+				} catch (Exception e) {
+					getLog().error("Unable to parse component in java file ${file.path}, facade null? ${facade == null}, td == null? ${td==null}", e)
+					if (System.getProperty("scanner.dumpContents")) {
+						println file.text
 					}
 				}
 			}
