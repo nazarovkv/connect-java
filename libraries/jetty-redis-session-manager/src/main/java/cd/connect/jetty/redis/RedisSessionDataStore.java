@@ -5,6 +5,7 @@ import org.eclipse.jetty.server.session.SessionData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Transaction;
+import redis.clients.jedis.exceptions.JedisException;
 
 import java.util.HashSet;
 import java.util.List;
@@ -93,7 +94,7 @@ public class RedisSessionDataStore extends AbstractSessionDataStore {
   }
 
   @Override
-  public boolean exists(String id) throws Exception {
+  public boolean exists(String id) {
     return jedisPool.execute("sessionExists", jedis -> {
       return jedis.exists(key(id));
     });
@@ -101,20 +102,36 @@ public class RedisSessionDataStore extends AbstractSessionDataStore {
 
   @Override
   public SessionData load(String id) throws Exception {
-    return jedisPool.execute("sessionLoad", jedis -> {
-      List<String> vals = jedis.hmget(key(id), "cpath", "vhost", "created", "accessed", "lastAccessed", "maxInactiveMs", "attributes", "cookieSet" );
+    // if we suffer a broken pipe or similar error, we get a bubbling jedis exception. this allows us to get a retry
+    //
+    for(int count = 0; count < 3; count ++) {
+      try {
+        return jedisPool.execute("sessionLoad", jedis -> {
+          List<String> vals = jedis.hmget(key(id), "cpath", "vhost", "created", "accessed", "lastAccessed", "maxInactiveMs", "attributes", "cookieSet" );
 
-      if (vals.size() == 0 || vals.get(0) == null) {
-        return null;
+          if (vals.size() == 0 || vals.get(0) == null) {
+            return null;
+          }
+
+          SessionData data = new SessionData(id, vals.get(0), vals.get(1), Long.parseLong(vals.get(2)), Long.parseLong(vals.get(3)), Long.parseLong(vals.get(4)),
+            Long.parseLong(vals.get(5)), serializer.deserializeSessionAttributes(vals.get(6)));
+
+          data.setCookieSet(Long.parseLong(vals.get(7)));
+
+          return data;
+        });
+      } catch (JedisException e) {
+        if (count < 2) {
+          log.warn("Jedis request failed because of error, retrying in 1s.", e);
+          Thread.sleep(1000);
+        } else {
+          log.error("Failed to load session from redis session id `{}`", id);
+          throw e;
+        }
       }
+    }
 
-      SessionData data = new SessionData(id, vals.get(0), vals.get(1), Long.parseLong(vals.get(2)), Long.parseLong(vals.get(3)), Long.parseLong(vals.get(4)),
-         Long.parseLong(vals.get(5)), serializer.deserializeSessionAttributes(vals.get(6)));
-
-      data.setCookieSet(Long.parseLong(vals.get(7)));
-
-      return data;
-    });
+    throw new IllegalStateException(); // can't get here
   }
 
   @Override

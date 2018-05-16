@@ -129,7 +129,7 @@ public final class JsonSerializer extends SerializerSkeleton {
 
   @Override
   public Map<String, Object> deserializeSessionAttributes(String o) throws SerializerException {
-    Map<String, Object> ret = new HashMap<String, Object>();
+    Map<String, Object> ret = new ConcurrentHashMap<>();
     try {
       JsonNode arrNode = mapper.readTree(o).get("attibutes");
       if (arrNode.isArray()) {
