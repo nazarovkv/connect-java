@@ -4,6 +4,7 @@ import org.eclipse.jetty.server.session.AbstractSessionDataStore;
 import org.eclipse.jetty.server.session.SessionData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Transaction;
 import redis.clients.jedis.exceptions.JedisException;
 
@@ -60,23 +61,37 @@ public class RedisSessionDataStore extends AbstractSessionDataStore {
   public void doStore(String id, SessionData data, long lastSaveTime) throws Exception {
     final Map<String, String> toStore = sessionToMap(data);
 
-    log.debug("[RedisSessionManager] storeSession - Storing session id={}", data.getId());
+    final String key = key(data.getId());
+    log.debug("[RedisSessionManager] storeSession - storing {}", key);
 
-    jedisPool.execute("sessionStore", jedis -> {
-      data.setLastSaved(System.currentTimeMillis());
+    for(int count = 0; count < 3; count ++) {
+      try {
+        jedisPool.execute("sessionStore", jedis -> {
+          data.setLastSaved(System.currentTimeMillis());
 
-      toStore.put("lastSaved", Long.toString(data.getLastSaved()));
-      Transaction multi = jedis.multi();
+          toStore.put("lastSaved", Long.toString(data.getLastSaved()));
+          Transaction multi = jedis.multi();
 
-      final String key = key(data.getId());
-      multi.hmset(key, toStore);
-      long ttl = data.getMaxInactiveMs() * 1000;
-      if (ttl > 0) {
-        multi.expire(key, (int)ttl);
+          multi.hmset(key, toStore);
+          long ttl = data.getMaxInactiveMs() / 1000;
+          if (ttl > 0) {
+            multi.expire(key, (int) ttl);
+          }
+
+          return multi.exec();
+        });
+
+        log.debug("[RedisSessionManager] save ok {}", toStore.get("attributes"));
+      } catch (JedisException e) {
+        if (count < 2) {
+          log.warn("Jedis save failed because of error, retrying in 1s.", e);
+          Thread.sleep(1000);
+        } else {
+          log.error("Failed to save session from redis session id `{}`", id);
+          throw e;
+        }
       }
-
-      return multi.exec();
-    });
+    }
   }
 
   private String key(String id) {
@@ -122,7 +137,7 @@ public class RedisSessionDataStore extends AbstractSessionDataStore {
         });
       } catch (JedisException e) {
         if (count < 2) {
-          log.warn("Jedis request failed because of error, retrying in 1s.", e);
+          log.warn("Jedis load failed because of error, retrying in 1s.", e);
           Thread.sleep(1000);
         } else {
           log.error("Failed to load session from redis session id `{}`", id);
