@@ -151,6 +151,7 @@ public class RedisSessionDataStore extends AbstractSessionDataStore {
 
   @Override
   public boolean delete(String id) throws Exception {
+
     return jedisPool.execute("sessionDelete", jedis -> {
       return jedis.del(key(id));
     }) == 1;
