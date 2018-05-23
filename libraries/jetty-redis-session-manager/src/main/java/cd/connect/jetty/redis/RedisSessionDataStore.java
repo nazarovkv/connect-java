@@ -62,7 +62,6 @@ public class RedisSessionDataStore extends AbstractSessionDataStore {
     final Map<String, String> toStore = sessionToMap(data);
 
     final String key = key(data.getId());
-    log.debug("[RedisSessionManager] storeSession - storing {}", key);
 
     for(int count = 0; count < 3; count ++) {
       try {
@@ -82,6 +81,8 @@ public class RedisSessionDataStore extends AbstractSessionDataStore {
         });
 
         log.debug("[RedisSessionManager] save ok {}", toStore.get("attributes"));
+
+        break;
       } catch (JedisException e) {
         if (count < 2) {
           log.warn("Jedis save failed because of error, retrying in 1s.", e);
@@ -111,7 +112,9 @@ public class RedisSessionDataStore extends AbstractSessionDataStore {
   @Override
   public boolean exists(String id) {
     return jedisPool.execute("sessionExists", jedis -> {
-      return jedis.exists(key(id));
+      Boolean exists = jedis.exists(key(id));
+      log.debug("[RedisSessionManager] session exists {}:{}", id, exists);
+      return exists;
     });
   }
 
@@ -127,6 +130,8 @@ public class RedisSessionDataStore extends AbstractSessionDataStore {
           if (vals.size() == 0 || vals.get(0) == null) {
             return null;
           }
+
+          log.debug("[RedisSessionManager] load ok {}", vals.get(6));
 
           SessionData data = new SessionData(id, vals.get(0), vals.get(1), Long.parseLong(vals.get(2)), Long.parseLong(vals.get(3)), Long.parseLong(vals.get(4)),
             Long.parseLong(vals.get(5)), serializer.deserializeSessionAttributes(vals.get(6)));
@@ -153,6 +158,8 @@ public class RedisSessionDataStore extends AbstractSessionDataStore {
   public boolean delete(String id) throws Exception {
 
     return jedisPool.execute("sessionDelete", jedis -> {
+      log.debug("[RedisSessionManager] delete ok {}", id);
+
       return jedis.del(key(id));
     }) == 1;
   }

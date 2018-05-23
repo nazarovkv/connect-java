@@ -110,6 +110,7 @@ public class VaultInitializer implements BatheInitializer {
                 log.info("vault: set property `{}` from vault key `{}`.", subKeyName, vaultKey.getVaultKeyName());
               } else {
                 log.error("Attempted to get subkey `{}` and it is not in the Vault map.", subkey);
+                failed = true;
               }
             });
           }
