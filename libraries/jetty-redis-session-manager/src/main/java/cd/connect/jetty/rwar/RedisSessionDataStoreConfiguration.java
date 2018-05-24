@@ -4,7 +4,7 @@ import cd.connect.jetty.redis.PooledJedisExecutor;
 import cd.connect.jetty.redis.RedisSessionDataStore;
 import cd.connect.jetty.redis.JsonSerializer;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.eclipse.jetty.server.session.DefaultSessionCache;
+import org.eclipse.jetty.server.session.NullSessionCache;
 import org.eclipse.jetty.server.session.SessionHandler;
 import org.eclipse.jetty.webapp.AbstractConfiguration;
 import org.eclipse.jetty.webapp.WebAppContext;
@@ -27,7 +27,7 @@ public class RedisSessionDataStoreConfiguration extends AbstractConfiguration {
     // now do what the jetty.xml was doing
     PooledJedisExecutor pooledExecutor = new PooledJedisExecutor(new JedisPool(new GenericObjectPoolConfig(), host, port), host, port);
 
-    handler.setSessionCache(new DefaultSessionCache(handler));
+    handler.setSessionCache(new NullSessionCache(handler));
     handler.getSessionCache().setSessionDataStore(new RedisSessionDataStore(pooledExecutor, new JsonSerializer()));
   }
 
