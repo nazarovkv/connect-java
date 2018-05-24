@@ -4,7 +4,7 @@
 
   <groupId>cd.connect.jetty</groupId>
   <artifactId>jetty-redis-session-store</artifactId>
-  <version>1.5-SNAPSHOT</version>
+  <version>1.5</version>
   <packaging>jar</packaging>
 
   <name>jetty-redis-session-store</name>
@@ -34,7 +34,7 @@
     <connection>scm:git:git@github.com:clearpointnz/connect-jetty-redis.git</connection>
     <developerConnection>scm:git:git@github.com:clearpointnz/connect-jetty-redis.git</developerConnection>
     <url>git@github.com:clearpointnz/connect-jetty-redis.git</url>
-    <tag>HEAD</tag>
+    <tag>jetty-redis-session-store-1.5</tag>
   </scm>
 
   <properties>
