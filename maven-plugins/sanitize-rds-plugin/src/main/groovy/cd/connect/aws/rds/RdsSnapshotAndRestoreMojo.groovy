@@ -1,3 +1,4 @@
+
 package cd.connect.aws.rds
 
 import com.amazonaws.services.rds.model.DBInstance
@@ -113,7 +114,7 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 			} else {
 				db = rdsClone.getDatabaseInstance(database)
 				getLog().info("db endpoint ${db.endpoint.toString()}")
-				hostName = (db.getEndpoint().address + ":" + db.getEndpoint().port)
+				hostName = db.getEndpoint().address
 			}
 		} else {
 			if (rdsClone.getDatabaseInstance(sanitizeName)) {
