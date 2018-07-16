@@ -30,8 +30,10 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 	String awsProfile
 	@Parameter(property = 'rds-clone.vpc-group-name')
 	String vpcGroupName
-	@Parameter(property = 'rds-cline.security-group-names')
+	@Parameter(property = 'rds-clone.security-group-names')
 	List<String> securityGroupNames = []
+	@Parameter(property = "rds-restore.tags")
+	List<DatabaseTag> tags
 
 	@Parameter(defaultValue = '${project}', readonly = true)
 	MavenProject project;
@@ -84,7 +86,7 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 
 		rdsClone.createDatabaseInstanceFromSnapshot(dbName, snapshotName, vpcGroupName,
 			snapshotVpcSecurityGroups, dbSecurityGroups,
-			restoreWaitInMinutes, pollTimeInSeconds, securityGroupNames, createInstanceResult)
+			restoreWaitInMinutes, pollTimeInSeconds, securityGroupNames, tags, createInstanceResult)
 	}
 }
 

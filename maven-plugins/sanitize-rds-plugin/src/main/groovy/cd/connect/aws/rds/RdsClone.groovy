@@ -76,6 +76,7 @@ class RdsClone {
 	                                        List<DBSecurityGroupMembership> dbSecurityGroups,
 	                                        int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds,
 																					List<String> securityGroupNames,
+																					List<DatabaseTag> tags,
 	                                        CreateInstanceResult completed) {
 		try {
 			rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database))
@@ -90,6 +91,9 @@ class RdsClone {
 			.withDBInstanceIdentifier(database)
 			.withDBSnapshotIdentifier(snapshot)
 
+		if (tags) {
+			restoreRequest.withTags(tags.collect({new Tag().withKey(it.name).withValue(it.value)}))
+		}
 
 		if (vpc) {
 			restoreRequest.withDBSubnetGroupName(vpc)
@@ -97,16 +101,19 @@ class RdsClone {
 
 		DBInstance instance = rdsClient.restoreDBInstanceFromDBSnapshot(restoreRequest)
 
-		println "created ${database} from instance ${snapshot} in ${end-start}ms"
+		println "creating ${database} from instance ${snapshot}..."
 
 		boolean success = waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, { ->
 			return "available".equals(databaseStatus(database))
 		})
 
+		println "created ${database} from instance ${snapshot} in ${end-start}ms"
+
 		if (success) {
 			ModifyDBInstanceRequest modifyRequest = null
 
 			if (snapshotVpcSecurityGroups || dbSecurityGroups) {
+				println("modifying db: copying security and vpc groups from snapshot.")
 				modifyRequest = new ModifyDBInstanceRequest().withDBInstanceIdentifier(instance.getDBInstanceIdentifier())
 				if (snapshotVpcSecurityGroups) {
 					modifyRequest.withVpcSecurityGroupIds(snapshotVpcSecurityGroups.collect({it.vpcSecurityGroupId}))
@@ -115,12 +122,12 @@ class RdsClone {
 					modifyRequest.withDBSecurityGroups(dbSecurityGroups.collect({it.getDBSecurityGroupName()}))
 				}
 			} else if (securityGroupNames) {
+				println("modifying db: with ${securityGroupNames}")
 				modifyRequest = new ModifyDBInstanceRequest().withDBInstanceIdentifier(instance.getDBInstanceIdentifier())
 				modifyRequest.withDBSecurityGroups(securityGroupNames)
 			}
 
 			if (modifyRequest) {
-				println("modifying database...")
 				rdsClient.modifyDBInstance(modifyRequest)
 				success = waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, { ->
 					return "available".equals(databaseStatus(database))
@@ -191,8 +198,22 @@ class RdsClone {
 
 	void deleteDatabaseSnapshot(String snapshot, String database, int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds) {
 		rdsClient.deleteDBSnapshot(new DeleteDBSnapshotRequest().withDBSnapshotIdentifier(snapshot))
-		waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, { ->
-			return snapshotStatus(snapshot, database) == null
-		})
+
+		if (waitPeriodInMinutes) {
+			waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, { ->
+				return snapshotStatus(snapshot, database) == null
+			})
+		}
+	}
+
+	// this allows us to clean unwanted snapshots for this database, particularly the ones created by
+	// rds automatically as it creates the database. We don't want for these as it isn't important
+	void removeAttachedSnapshots(String databaseName, String exclude = null) {
+		discoverSnapshots(databaseName).each { String name ->
+			if (!exclude || !exclude.equals(name)) {
+				println "deleting snapshot ${databaseName}:${name}"
+				deleteDatabaseSnapshot(name, databaseName, 0, 0)
+			}
+		}
 	}
 }

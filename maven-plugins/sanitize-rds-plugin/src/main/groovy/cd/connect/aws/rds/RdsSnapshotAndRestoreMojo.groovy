@@ -45,10 +45,14 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 	boolean skipSanitize = false
 	@Parameter(property = "rds-restore.skip-dump")
 	boolean skipDump = false
+	// this one deletes the snapshot that was just made
 	@Parameter(property = "rds-restore.clean-sanitize")
 	boolean cleanSanitize = false
+	// this one removes all snapshots from the restored database
 	@Parameter(property = "rds-restore.clean-snapshot")
 	boolean cleanSnapshot = false
+	@Parameter(property = 'rds-clone.cleanupDatabaseSnapshots')
+	boolean cleanupDatabaseSnapshots = false
 	@Parameter(property = "rds-restore.parallel-dump")
 	boolean parallelDump = false
 	@Parameter(property = "rds-restore.into-database")
@@ -129,6 +133,11 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 
 			println "db instance? ${db}"
 
+			if (cleanupDatabaseSnapshots) {
+				// no waiting on this one
+				rdsClone.removeAttachedSnapshots(sanitizeName, snapshotName)
+			}
+
 			getLog().info("db endpoint ${db.endpoint.toString()}")
 			hostName = (db.getEndpoint().address + ":" + db.getEndpoint().port)
 		}
@@ -170,6 +179,8 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 		if (cleanSnapshot) {
 			rdsClone.deleteDatabaseSnapshot(realSnapshotName, database, snapshotWaitInMinutes, pollTimeInSeconds)
 		}
+
+//		if (clean)
 
 		if (cleanSanitize) {
 			rdsClone.deleteDatabaseInstance(sanitizeName, 0, 0)
