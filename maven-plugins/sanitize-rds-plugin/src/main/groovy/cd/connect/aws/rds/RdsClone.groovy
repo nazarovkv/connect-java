@@ -74,7 +74,9 @@ class RdsClone {
 	void createDatabaseInstanceFromSnapshot(String database, String snapshot, String vpc,
 	                                        List<VpcSecurityGroupMembership> snapshotVpcSecurityGroups,
 	                                        List<DBSecurityGroupMembership> dbSecurityGroups,
-	                                        int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds, CreateInstanceResult completed) {
+	                                        int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds,
+																					List<String> securityGroupNames,
+	                                        CreateInstanceResult completed) {
 		try {
 			rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database))
 
@@ -102,20 +104,28 @@ class RdsClone {
 		})
 
 		if (success) {
+			ModifyDBInstanceRequest modifyRequest = null
+
 			if (snapshotVpcSecurityGroups || dbSecurityGroups) {
-				def m = new ModifyDBInstanceRequest().withDBInstanceIdentifier(instance.getDBInstanceIdentifier())
+				modifyRequest = new ModifyDBInstanceRequest().withDBInstanceIdentifier(instance.getDBInstanceIdentifier())
 				if (snapshotVpcSecurityGroups) {
-					m.withVpcSecurityGroupIds(snapshotVpcSecurityGroups.collect({it.vpcSecurityGroupId}))
+					modifyRequest.withVpcSecurityGroupIds(snapshotVpcSecurityGroups.collect({it.vpcSecurityGroupId}))
 				}
 				if (dbSecurityGroups) {
-					m.withDBSecurityGroups(dbSecurityGroups.collect({it.getDBSecurityGroupName()}))
+					modifyRequest.withDBSecurityGroups(dbSecurityGroups.collect({it.getDBSecurityGroupName()}))
 				}
-				rdsClient.modifyDBInstance(m)
+			} else if (securityGroupNames) {
+				modifyRequest = new ModifyDBInstanceRequest().withDBInstanceIdentifier(instance.getDBInstanceIdentifier())
+				modifyRequest.withDBSecurityGroups(securityGroupNames)
 			}
 
-			success = waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, { ->
-				return "available".equals(databaseStatus(database))
-			})
+			if (modifyRequest) {
+				println("modifying database...")
+				rdsClient.modifyDBInstance(modifyRequest)
+				success = waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, { ->
+					return "available".equals(databaseStatus(database))
+				})
+			}
 		}
 
 		if (completed) {
