@@ -118,7 +118,7 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 			}
 		} else {
 			if (rdsClone.getDatabaseInstance(sanitizeName)) {
-				getLog().info("cleaning old sanitize copy from snapshot")
+				getLog().info("cleaning old database ${sanitizeName} sanitize copy from snapshot")
 				rdsClone.deleteDatabaseInstance(sanitizeName, restoreWaitInMinutes, pollTimeInSeconds)
 			}
 
@@ -168,7 +168,7 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 		}
 
 		if (cleanSnapshot) {
-			rdsClone.deleteDatabaseSnapshot(realSnapshotName)
+			rdsClone.deleteDatabaseSnapshot(realSnapshotName, database, snapshotWaitInMinutes, pollTimeInSeconds)
 		}
 
 		if (cleanSanitize) {
