@@ -51,7 +51,9 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 				String status = rdsClone.snapshotStatus(snapshotName, database)
 				if (status) {
 					getLog().info("Found snapshot with name ${snapshotName} - status ${status}, deleting.")
-					rdsClone.deleteDatabaseSnapshot(snapshotName)
+					rdsClone.deleteDatabaseSnapshot(snapshotName, database, snapshotWaitInMinutes, pollTimeInSeconds)
+
+
 				}
 			} catch (Exception e) {
 				getLog().info("Unable to delete snapshot ${snapshotName}: ${e.message}", e)

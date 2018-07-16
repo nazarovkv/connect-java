@@ -189,7 +189,10 @@ class RdsClone {
 		}
 	}
 
-	void deleteDatabaseSnapshot(String snapshot) {
+	void deleteDatabaseSnapshot(String snapshot, String database, int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds) {
 		rdsClient.deleteDBSnapshot(new DeleteDBSnapshotRequest().withDBSnapshotIdentifier(snapshot))
+		waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, { ->
+			return snapshotStatus(snapshot, database) == null
+		})
 	}
 }
