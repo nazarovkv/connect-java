@@ -122,9 +122,9 @@ class RdsClone {
 					modifyRequest.withDBSecurityGroups(dbSecurityGroups.collect({it.getDBSecurityGroupName()}))
 				}
 			} else if (securityGroupNames) {
-				println("modifying db: with ${securityGroupNames}")
+				println("modifying db: with vpc security group ids ${securityGroupNames}")
 				modifyRequest = new ModifyDBInstanceRequest().withDBInstanceIdentifier(instance.getDBInstanceIdentifier())
-				modifyRequest.withDBSecurityGroups(securityGroupNames)
+				modifyRequest.withVpcSecurityGroupIds(securityGroupNames)
 			}
 
 			if (modifyRequest) {
