@@ -46,6 +46,19 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 		rdsClone.initialize(awsProfile)
 	}
 	protected String snapshot() throws MojoFailureException {
+		if (snapshotName) {
+			try {
+				String status = rdsClone.snapshotStatus(snapshotName, database)
+				if (status) {
+					getLog().info("Found snapshot with name ${snapshotName} - status ${status}, deleting.")
+					rdsClone.deleteDatabaseSnapshot(snapshotName)
+				}
+			} catch (Exception e) {
+				getLog().info("Unable to delete snapshot ${snapshotName}: ${e.message}", e)
+			}
+		}
+
+
 		DBInstance instance = rdsClone.getDatabaseInstance(database)
 		if (!vpcGroupName && instance) {
 			vpcGroupName = instance.DBSubnetGroup?.DBSubnetGroupName
