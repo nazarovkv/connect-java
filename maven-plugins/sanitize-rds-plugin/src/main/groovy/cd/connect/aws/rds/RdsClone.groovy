@@ -213,6 +213,8 @@ class RdsClone {
 			if (!exclude || !exclude.equals(name)) {
 				println "deleting snapshot ${databaseName}:${name}"
 				deleteDatabaseSnapshot(name, databaseName, 0, 0)
+			} else {
+				println "skipping deleting snapshot ${name}"
 			}
 		}
 	}

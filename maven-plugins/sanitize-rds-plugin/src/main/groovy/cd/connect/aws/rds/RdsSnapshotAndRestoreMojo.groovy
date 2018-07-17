@@ -133,11 +133,6 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 
 			println "db instance? ${db}"
 
-			if (cleanupDatabaseSnapshots) {
-				// no waiting on this one
-				rdsClone.removeAttachedSnapshots(sanitizeName, snapshotName)
-			}
-
 			getLog().info("db endpoint ${db.endpoint.toString()}")
 			hostName = (db.getEndpoint().address + ":" + db.getEndpoint().port)
 		}
@@ -180,7 +175,10 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 			rdsClone.deleteDatabaseSnapshot(realSnapshotName, database, snapshotWaitInMinutes, pollTimeInSeconds)
 		}
 
-//		if (clean)
+		if (cleanupDatabaseSnapshots) {
+			// no waiting on this one
+			rdsClone.removeAttachedSnapshots((skipSanitize && database) ? database : sanitizeName, snapshotName)
+		}
 
 		if (cleanSanitize) {
 			rdsClone.deleteDatabaseInstance(sanitizeName, 0, 0)
