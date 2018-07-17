@@ -70,7 +70,7 @@ class RdsClone {
 
 		return snapshots.DBSnapshots
 			.findAll({ (ignoreAutomated && it.getSnapshotType() != 'automated' ) || !ignoreAutomated })
-		  .collect({ it.getDBInstanceIdentifier()})
+		  .collect({ it.getDBSnapshotIdentifier()})
 	}
 
 	void createDatabaseInstanceFromSnapshot(String database, String snapshot, String vpc,
