@@ -63,12 +63,14 @@ class RdsClone {
 		}
 	}
 
-	List<String> discoverSnapshots(String database) {
+	List<String> discoverSnapshots(String database, boolean ignoreAutomated = false) {
 		DescribeDBSnapshotsResult snapshots = rdsClient.describeDBSnapshots(new DescribeDBSnapshotsRequest()
 			.withDBInstanceIdentifier(database)
 		)
 
-		return snapshots.DBSnapshots.collect({ it.getDBSnapshotIdentifier() })
+		return snapshots.DBSnapshots
+			.findAll({ (ignoreAutomated && it.getSnapshotType() != 'automated' ) || !ignoreAutomated })
+		  .collect({ it.getDBInstanceIdentifier()})
 	}
 
 	void createDatabaseInstanceFromSnapshot(String database, String snapshot, String vpc,
@@ -94,6 +96,7 @@ class RdsClone {
 		if (tags) {
 			restoreRequest.withTags(tags.collect({new Tag().withKey(it.name).withValue(it.value)}))
 		}
+
 
 		if (vpc) {
 			restoreRequest.withDBSubnetGroupName(vpc)
@@ -209,7 +212,7 @@ class RdsClone {
 	// this allows us to clean unwanted snapshots for this database, particularly the ones created by
 	// rds automatically as it creates the database. We don't want for these as it isn't important
 	void removeAttachedSnapshots(String databaseName, String exclude = null) {
-		discoverSnapshots(databaseName).each { String name ->
+		discoverSnapshots(databaseName, true).each { String name ->
 			if (!exclude || !exclude.equals(name)) {
 				println "deleting snapshot ${databaseName}:${name}"
 				deleteDatabaseSnapshot(name, databaseName, 0, 0)
