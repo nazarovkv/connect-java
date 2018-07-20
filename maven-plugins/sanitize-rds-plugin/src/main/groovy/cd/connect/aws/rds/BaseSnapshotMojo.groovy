@@ -86,7 +86,7 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 
 		rdsClone.createDatabaseInstanceFromSnapshot(dbName, snapshotName, vpcGroupName,
 			snapshotVpcSecurityGroups, dbSecurityGroups,
-			restoreWaitInMinutes, pollTimeInSeconds, securityGroupNames, tags, createInstanceResult)
+			restoreWaitInMinutes, pollTimeInSeconds, securityGroupNames, tags, password, createInstanceResult)
 	}
 }
 

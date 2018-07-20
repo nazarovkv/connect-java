@@ -8,8 +8,6 @@ import com.amazonaws.services.rds.AmazonRDSClientBuilder
 import com.amazonaws.services.rds.model.*
 import groovy.transform.CompileStatic
 
-import java.util.concurrent.atomic.AtomicBoolean
-
 /**
  * Created by Richard Vowles on 16/02/18.
  */
@@ -31,14 +29,14 @@ class RdsClone {
 		String snapshotName = snapshotOverride ?: database + "-" + System.currentTimeMillis()
 		long start = System.currentTimeMillis()
 		CreateDBSnapshotRequest snap = new CreateDBSnapshotRequest()
-		  .withDBInstanceIdentifier(database)
+			.withDBInstanceIdentifier(database)
 			.withDBSnapshotIdentifier(snapshotName)
 
 		rdsClient.createDBSnapshot(snap)
 
 		long end = System.currentTimeMillis()
 
-		println "snapshot ${snapshotName} created in ${(end-start)}ms (${snap}";
+		println "snapshot ${snapshotName} created in ${(end - start)}ms (${snap}";
 
 		boolean success = waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, { ->
 			return "available".equals(snapshotStatus(snapshotName, database))
@@ -69,22 +67,24 @@ class RdsClone {
 		)
 
 		return snapshots.DBSnapshots
-			.findAll({ (ignoreAutomated && it.getSnapshotType() != 'automated' ) || !ignoreAutomated })
-		  .collect({ it.getDBSnapshotIdentifier()})
+			.findAll({ (ignoreAutomated && it.getSnapshotType() != 'automated') || !ignoreAutomated })
+			.collect({ it.getDBSnapshotIdentifier() })
 	}
 
 	void createDatabaseInstanceFromSnapshot(String database, String snapshot, String vpc,
 	                                        List<VpcSecurityGroupMembership> snapshotVpcSecurityGroups,
 	                                        List<DBSecurityGroupMembership> dbSecurityGroups,
 	                                        int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds,
-																					List<String> securityGroupNames,
-																					List<DatabaseTag> tags,
+	                                        List<String> securityGroupNames,
+	                                        List<DatabaseTag> tags,
+	                                        String password,
 	                                        CreateInstanceResult completed) {
 		try {
 			rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database))
 
 			deleteDatabaseInstance(database, waitPeriodInMinutes, waitPeriodPollTimeInSeconds)
-		} catch (DBInstanceNotFoundException dinfe) {}
+		} catch (DBInstanceNotFoundException dinfe) {
+		}
 
 		long end = System.currentTimeMillis()
 
@@ -94,7 +94,7 @@ class RdsClone {
 			.withDBSnapshotIdentifier(snapshot)
 
 		if (tags) {
-			restoreRequest.withTags(tags.collect({new Tag().withKey(it.name).withValue(it.value)}))
+			restoreRequest.withTags(tags.collect({ new Tag().withKey(it.name).withValue(it.value) }))
 		}
 
 
@@ -110,7 +110,7 @@ class RdsClone {
 			return "available".equals(databaseStatus(database))
 		})
 
-		println "created ${database} from instance ${snapshot} in ${end-start}ms"
+		println "created ${database} from instance ${snapshot} in ${end - start}ms"
 
 		if (success) {
 			ModifyDBInstanceRequest modifyRequest = null
@@ -119,15 +119,23 @@ class RdsClone {
 				println("modifying db: copying security and vpc groups from snapshot.")
 				modifyRequest = new ModifyDBInstanceRequest().withDBInstanceIdentifier(instance.getDBInstanceIdentifier())
 				if (snapshotVpcSecurityGroups) {
-					modifyRequest.withVpcSecurityGroupIds(snapshotVpcSecurityGroups.collect({it.vpcSecurityGroupId}))
+					modifyRequest.withVpcSecurityGroupIds(snapshotVpcSecurityGroups.collect({ it.vpcSecurityGroupId }))
 				}
 				if (dbSecurityGroups) {
-					modifyRequest.withDBSecurityGroups(dbSecurityGroups.collect({it.getDBSecurityGroupName()}))
+					modifyRequest.withDBSecurityGroups(dbSecurityGroups.collect({ it.getDBSecurityGroupName() }))
 				}
 			} else if (securityGroupNames) {
 				println("modifying db: with vpc security group ids ${securityGroupNames}")
 				modifyRequest = new ModifyDBInstanceRequest().withDBInstanceIdentifier(instance.getDBInstanceIdentifier())
 				modifyRequest.withVpcSecurityGroupIds(securityGroupNames)
+			}
+
+			if (password) {
+				if (modifyRequest == null) {
+					modifyRequest = new ModifyDBInstanceRequest().withDBInstanceIdentifier(instance.getDBInstanceIdentifier())
+				}
+
+				modifyRequest.withMasterUserPassword(password)
 			}
 
 			if (modifyRequest) {
@@ -175,7 +183,7 @@ class RdsClone {
 				// when the database has gone away...
 				try {
 					rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database))
-					
+
 					return false
 				} catch (DBInstanceNotFoundException nfe) {
 					return true
@@ -187,7 +195,7 @@ class RdsClone {
 	String databaseStatus(String database) {
 		return getDatabaseInstance(database)?.DBInstanceStatus
 	}
-	
+
 
 	DBInstance getDatabaseInstance(String database) {
 		try {
