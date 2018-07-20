@@ -195,6 +195,7 @@ class RdsClone {
 			println "instances = ${instances}"
 			return instances?.DBInstances?.first()
 		} catch (Exception e) {
+			e.printStackTrace()
 			return null
 		}
 	}

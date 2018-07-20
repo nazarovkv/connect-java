@@ -117,6 +117,9 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 				hostName = hostname
 			} else {
 				db = rdsClone.getDatabaseInstance(database)
+				if (db == null) {
+					throw new MojoFailureException("database ${database} does not exist")
+				}
 				getLog().info("db endpoint ${db.endpoint.toString()}")
 				hostName = db.getEndpoint().address
 			}
