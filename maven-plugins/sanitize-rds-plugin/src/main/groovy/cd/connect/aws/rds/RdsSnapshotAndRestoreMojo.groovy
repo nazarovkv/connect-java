@@ -146,16 +146,7 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 				.replace('$sanitizeFolder', sanitizeFolder.absolutePath)
 
 			sanitizeSqls.each { String sqlFile ->
-				getLog().info("SQL File $sqlFile")
-				String localCommand = command.replace('$sanitizeSql', sqlFile)
-				Process p = splitAndKeepQuotesTogether(localCommand).execute()
-				getLog().info(localCommand)
-				p.waitFor()
-
-				if (p.exitValue() != 0) {
-					getLog().info("Error code ${p.exitValue()} : ${p.errorStream?.text}")
-					throw new MojoFailureException("Failed to process request to sanitize")
-				}
+				executeSanitizeSql(sqlFile, command, 3)
 			}
 		}
 
@@ -185,6 +176,25 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 
 		if (cleanSanitize) {
 			rdsClone.deleteDatabaseInstance(sanitizeName, 0, 0)
+		}
+	}
+
+	void executeSanitizeSql( String sqlFile, String command, int retries) {
+		getLog().info("SQL File $sqlFile")
+		String localCommand = command.replace('$sanitizeSql', sqlFile)
+		Process p = splitAndKeepQuotesTogether(localCommand).execute()
+		getLog().info(localCommand)
+		p.waitFor()
+
+		if (p.exitValue() != 0) {
+			String err = p.errorStream?.text
+			if (err?.contains('Connection timed out') && retries > 0) {
+				getLog().info("Error code ${p.exitValue()} : ${err}, retrying because of connection failure.")
+				executeSanitizeSql(sqlFile, command, retries-1)
+			} else {
+				getLog().info("Error code ${p.exitValue()} : ${err}")
+				throw new MojoFailureException("Failed to process request to sanitize")
+			}
 		}
 	}
 
