@@ -230,4 +230,9 @@ class RdsClone {
 			}
 		}
 	}
+
+	void deleteDatabase(String database) {
+		DeleteDBInstanceRequest del = new DeleteDBInstanceRequest().withDBInstanceIdentifier(database)
+		rdsClient.deleteDBInstance(del)
+	}
 }
