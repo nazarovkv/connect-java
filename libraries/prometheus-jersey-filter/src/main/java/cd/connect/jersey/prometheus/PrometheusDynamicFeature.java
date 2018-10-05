@@ -32,7 +32,7 @@ public class PrometheusDynamicFeature implements DynamicFeature {
 
   @Override
   public void configure(ResourceInfo resourceInfo, FeatureContext context) {
-    Prometheus annotation = resourceInfo.getResourceClass().getAnnotation(Prometheus.class);
+    Prometheus annotation = resourceInfo.getResourceMethod().getAnnotation(Prometheus.class);
     if (annotation != null || profileAll) {
       context.register(new PrometheusFilter(resourceInfo, prefix, annotation));
     }
