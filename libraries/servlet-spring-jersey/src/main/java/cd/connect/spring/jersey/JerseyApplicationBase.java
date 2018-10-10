@@ -19,8 +19,10 @@ import org.springframework.context.ApplicationContext;
 
 import javax.ws.rs.core.Configurable;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.glassfish.jersey.servlet.ServletProperties.PROVIDER_WEB_APP;
@@ -53,10 +55,15 @@ public class JerseyApplicationBase extends ResourceConfig implements JerseyAppli
 
 		// now register services specific to this particular Jersey Application.
 		if (resources != null) {
+			Set<Class<?>> resourceClasses = new HashSet<>();
+
 			resources.forEach(c -> {
 				logger.debug("registering jersey resource: {}", c.getName());
 				register(context.getBean(c));
+				resourceClasses.add(c);
 			});
+
+			property(JerseyApplication.RESOURCE_INTERFACE_LIST, resourceClasses);
 		}
 	}
 

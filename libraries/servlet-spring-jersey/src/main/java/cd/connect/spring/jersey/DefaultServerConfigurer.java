@@ -1,6 +1,5 @@
 package cd.connect.spring.jersey;
 
-import io.swagger.jaxrs.listing.ApiListingResource;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
 import org.glassfish.jersey.CommonProperties;
 import org.glassfish.jersey.jackson.JacksonFeature;
@@ -35,7 +34,7 @@ public class DefaultServerConfigurer implements JaxrsServerConfigurer {
 		config.register(WadlResource.class);
 
 		// support swagger requests
-		config.register(ApiListingResource.class);
+		config.register(ConnectSwaggerApiResource.class);
 		config.register(SwaggerSerializers.class);
 	}
 }

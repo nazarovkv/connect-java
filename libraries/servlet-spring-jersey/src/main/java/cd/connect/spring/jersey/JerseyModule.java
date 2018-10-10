@@ -2,6 +2,7 @@ package cd.connect.spring.jersey;
 
 
 import cd.connect.spring.servlet.ServletModule;
+import io.swagger.jaxrs.config.SwaggerContextService;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.glassfish.jersey.servlet.ServletProperties;
@@ -43,7 +44,9 @@ abstract public class JerseyModule extends ServletModule {
 		servlet(new ServletContainer(base), s ->
 			s.priority(100).name(this.getClass().getSimpleName() + "_servlet")
 				.url(getUrlServletPrefix())
-				.param(ServletProperties.FILTER_CONTEXT_PATH, getUrlServletPrefix()));
+				.param(ServletProperties.FILTER_CONTEXT_PATH, getUrlServletPrefix())
+				.param(SwaggerContextService.USE_PATH_BASED_CONFIG, "true")
+				.param(SwaggerContextService.SCANNER_ID_KEY, SwaggerContextService.SCANNER_ID_KEY));
 	}
 
 	abstract protected Stream<Class<?>> registerResources();
