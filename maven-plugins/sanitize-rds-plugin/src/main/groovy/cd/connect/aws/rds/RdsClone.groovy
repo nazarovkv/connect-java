@@ -78,6 +78,7 @@ class RdsClone {
 	                                        List<String> securityGroupNames,
 	                                        List<DatabaseTag> tags,
 	                                        String password,
+	                                        boolean multiAZ,
 	                                        CreateInstanceResult completed) {
 		try {
 			rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database))
@@ -101,6 +102,8 @@ class RdsClone {
 		if (vpc) {
 			restoreRequest.withDBSubnetGroupName(vpc)
 		}
+
+		restoreRequest.withMultiAZ(multiAZ)
 
 		DBInstance instance = rdsClient.restoreDBInstanceFromDBSnapshot(restoreRequest)
 

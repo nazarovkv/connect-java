@@ -32,6 +32,8 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 	String vpcGroupName
 	@Parameter(property = 'rds-clone.security-group-names')
 	List<String> securityGroupNames = []
+	@Parameter(property = 'rds-clone.multiAZ')
+	boolean multiAZ = false;
 	@Parameter(property = "rds-restore.tags")
 	List<DatabaseTag> tags
 
@@ -86,7 +88,7 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 
 		rdsClone.createDatabaseInstanceFromSnapshot(dbName, snapshotName, vpcGroupName,
 			snapshotVpcSecurityGroups, dbSecurityGroups,
-			restoreWaitInMinutes, pollTimeInSeconds, securityGroupNames, tags, password, createInstanceResult)
+			restoreWaitInMinutes, pollTimeInSeconds, securityGroupNames, tags, password, multiAZ, createInstanceResult)
 	}
 }
 
