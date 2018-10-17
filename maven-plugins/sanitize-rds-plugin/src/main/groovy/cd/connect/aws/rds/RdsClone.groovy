@@ -105,6 +105,10 @@ class RdsClone {
 
 		restoreRequest.withMultiAZ(multiAZ)
 
+		if (multiAZ) {
+			println("restoring as multi-AZ")
+		}
+
 		DBInstance instance = rdsClient.restoreDBInstanceFromDBSnapshot(restoreRequest)
 
 		println "creating ${database} from instance ${snapshot}..."
