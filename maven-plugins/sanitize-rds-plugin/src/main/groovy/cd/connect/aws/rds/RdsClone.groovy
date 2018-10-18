@@ -7,6 +7,7 @@ import com.amazonaws.services.rds.AmazonRDS
 import com.amazonaws.services.rds.AmazonRDSClientBuilder
 import com.amazonaws.services.rds.model.*
 import groovy.transform.CompileStatic
+import org.apache.maven.plugin.MojoFailureException
 
 /**
  * Created by Richard Vowles on 16/02/18.
@@ -117,7 +118,7 @@ class RdsClone {
 			return "available".equals(databaseStatus(database))
 		})
 
-		println "created ${database} from instance ${snapshot} in ${end - start}ms"
+		println "created ${database} from instance ${snapshot} in ${end - start}ms - success? ${success}"
 
 		if (success) {
 			ModifyDBInstanceRequest modifyRequest = null
@@ -146,11 +147,14 @@ class RdsClone {
 			}
 
 			if (modifyRequest) {
+				println "Modify request issued for ${database} / ${snapshot}: ${modifyRequest.toString()}"
 				rdsClient.modifyDBInstance(modifyRequest)
 				success = waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, { ->
 					return "available".equals(databaseStatus(database))
 				})
 			}
+		} else {
+			throw new MojoFailureException("Creation of database failed.")
 		}
 
 		if (completed) {

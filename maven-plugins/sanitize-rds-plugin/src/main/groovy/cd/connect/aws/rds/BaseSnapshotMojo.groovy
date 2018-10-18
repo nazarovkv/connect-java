@@ -19,11 +19,11 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 	@Parameter(property = "rds-clone.password")
 	String password
 	@Parameter(property = "rds-clone.snapshot-wait")
-	int snapshotWaitInMinutes = 20
+	int snapshotWaitInMinutes = 25
 	@Parameter(property = "rds-clone.restore-wait")
-	int restoreWaitInMinutes = 20
+	int restoreWaitInMinutes = 25
 	@Parameter(property = "rds-clone.poll-interval")
-	int pollTimeInSeconds = 20
+	int pollTimeInSeconds = 25
 	@Parameter(property = "rds-clone.snapshotName")
 	String snapshotName
 	@Parameter(property = "rds-clone.aws-profile")
