@@ -147,6 +147,7 @@ class RdsClone {
 			}
 
 			if (modifyRequest) {
+				modifyRequest.withApplyImmediately(true);
 				println "Modify request issued for ${database} / ${snapshot}: ${modifyRequest.toString()}"
 				rdsClient.modifyDBInstance(modifyRequest)
 				success = waitFor(waitPeriodInMinutes, waitPeriodPollTimeInSeconds, { ->
