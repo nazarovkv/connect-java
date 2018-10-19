@@ -72,7 +72,7 @@ class RdsClone {
 			.collect({ it.getDBSnapshotIdentifier() })
 	}
 
-	void createDatabaseInstanceFromSnapshot(String database, String snapshot, String vpc,
+	void createDatabaseInstanceFromSnapshot(String database, String snapshot, String dbSubnetGroupName,
 	                                        List<VpcSecurityGroupMembership> snapshotVpcSecurityGroups,
 	                                        List<DBSecurityGroupMembership> dbSecurityGroups,
 	                                        int waitPeriodInMinutes, int waitPeriodPollTimeInSeconds,
@@ -100,8 +100,8 @@ class RdsClone {
 		}
 
 
-		if (vpc) {
-			restoreRequest.withDBSubnetGroupName(vpc)
+		if (dbSubnetGroupName) {
+			restoreRequest.withDBSubnetGroupName(dbSubnetGroupName)
 		}
 
 		restoreRequest.withMultiAZ(multiAZ)
@@ -124,7 +124,7 @@ class RdsClone {
 			ModifyDBInstanceRequest modifyRequest = null
 
 			if (snapshotVpcSecurityGroups || dbSecurityGroups) {
-				println("modifying db: copying security and vpc groups from snapshot.")
+				println("modifying db: copying security and dbSubnetGroupName groups from snapshot.")
 				modifyRequest = new ModifyDBInstanceRequest().withDBInstanceIdentifier(instance.getDBInstanceIdentifier())
 				if (snapshotVpcSecurityGroups) {
 					modifyRequest.withVpcSecurityGroupIds(snapshotVpcSecurityGroups.collect({ it.vpcSecurityGroupId }))
@@ -133,7 +133,7 @@ class RdsClone {
 					modifyRequest.withDBSecurityGroups(dbSecurityGroups.collect({ it.getDBSecurityGroupName() }))
 				}
 			} else if (securityGroupNames) {
-				println("modifying db: with vpc security group ids ${securityGroupNames}")
+				println("modifying db: with dbSubnetGroupName security group ids ${securityGroupNames}")
 				modifyRequest = new ModifyDBInstanceRequest().withDBInstanceIdentifier(instance.getDBInstanceIdentifier())
 				modifyRequest.withVpcSecurityGroupIds(securityGroupNames)
 			}

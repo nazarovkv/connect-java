@@ -76,6 +76,21 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 		return command
 	}
 
+	void checkIntoDatabaseForSecurityGroupAndVpc() {
+		if (!dbSubnetGroupName && !securityGroupNames && intoDatabase) {
+			try {
+				DBInstance instance = rdsClone.getDatabaseInstance(intoDatabase)
+
+				if (instance) {
+					dbSubnetGroupName = instance.DBSubnetGroup?.DBSubnetGroupName
+					securityGroupNames = instance.vpcSecurityGroups.collect({vpc -> vpc.vpcSecurityGroupId})
+				}
+			} catch (Exception e) {
+				getLog().info("No existing database ${intoDatabase} to copy into, not cloning VPC and security groups.")
+			}
+		}
+	}
+
 	@Override
 	void execute() throws MojoExecutionException, MojoFailureException {
 		if (skip) { return }
@@ -99,6 +114,10 @@ class RdsSnapshotAndRestoreMojo extends BaseSnapshotMojo {
 		}
 
 		init()
+
+		if (intoDatabase) {
+			checkIntoDatabaseForSecurityGroupAndVpc()
+		}
 
 		if (!skipSnapshot) {
 			snapshot()

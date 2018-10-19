@@ -28,8 +28,8 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 	String snapshotName
 	@Parameter(property = "rds-clone.aws-profile")
 	String awsProfile
-	@Parameter(property = 'rds-clone.vpc-group-name')
-	String vpcGroupName
+	@Parameter(property = 'rds-clone.db-subnet-group-name')
+	String dbSubnetGroupName
 	@Parameter(property = 'rds-clone.security-group-names')
 	List<String> securityGroupNames = []
 	@Parameter(property = 'rds-clone.multiAZ')
@@ -64,10 +64,9 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 			}
 		}
 
-
 		DBInstance instance = rdsClone.getDatabaseInstance(database)
-		if (!vpcGroupName && instance) {
-			vpcGroupName = instance.DBSubnetGroup?.DBSubnetGroupName
+		if (!dbSubnetGroupName && instance) {
+			dbSubnetGroupName = instance.DBSubnetGroup?.DBSubnetGroupName
 			snapshotVpcSecurityGroups = instance.vpcSecurityGroups
 			dbSecurityGroups = instance.DBSecurityGroups
 		}
@@ -84,9 +83,9 @@ abstract public class BaseSnapshotMojo extends AbstractMojo {
 			throw new MojoFailureException(err)
 		}
 
-		getLog().info("Restoring snapshot `${snapshotName}` into database `${dbName}` using vpc subnet `${vpcGroupName?:'default'}")
+		getLog().info("Restoring snapshot `${snapshotName}` into database `${dbName}` using vpc subnet `${dbSubnetGroupName?:'default'}")
 
-		rdsClone.createDatabaseInstanceFromSnapshot(dbName, snapshotName, vpcGroupName,
+		rdsClone.createDatabaseInstanceFromSnapshot(dbName, snapshotName, dbSubnetGroupName,
 			snapshotVpcSecurityGroups, dbSecurityGroups,
 			restoreWaitInMinutes, pollTimeInSeconds, securityGroupNames, tags, password, multiAZ, createInstanceResult)
 	}
