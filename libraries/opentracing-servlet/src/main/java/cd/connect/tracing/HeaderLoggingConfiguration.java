@@ -95,6 +95,10 @@ public class HeaderLoggingConfiguration {
   }
 
   public Set<String> getAcceptHeaders() {
+  	if (actualHeaders == null) {
+  		completeConfiguration();
+	  }
+	  
   	return actualHeaders;
   }
 
