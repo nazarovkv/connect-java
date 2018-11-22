@@ -1,3 +1,16 @@
 public enum {{classname}} {
-    {{#allowableValues}}{{.}}{{^-last}}, {{/-last}}{{/allowableValues}}
+    {{#allowableValues}}{{#values}}{{{.}}}("{{{.}}}"){{^-last}},
+        {{/-last}}{{#-last}};{{/-last}}{{/values}}{{/allowableValues}}
+
+        private String value;
+
+        {{classname}}(String value) {
+          this.value = value;
+        }
+
+        @Override
+        @JsonValue
+        public String toString() {
+          return value;
+        }
 }

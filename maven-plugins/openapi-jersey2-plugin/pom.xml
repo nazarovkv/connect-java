@@ -35,7 +35,7 @@
 	</scm>
 
 	<properties>
-		<swagger-codegen-version>2.2.3</swagger-codegen-version>
+		<swagger-codegen-version>2.3.1</swagger-codegen-version>
 	</properties>
 
 	<prerequisites>
