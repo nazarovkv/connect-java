@@ -17,124 +17,124 @@ import java.util.UUID;
  * @author Richard Vowles - https://plus.google.com/+RichardVowles
  */
 public class ConnectLoggingTracer implements Tracer {
-	private final Tracer wrappedTracer;
-	private final static String REQUEST_ID = "request-id";
+  private final static String REQUEST_ID = "request-id";
+  private final Tracer wrappedTracer;
 
-	public ConnectLoggingTracer(Tracer wrappedTracer) {
-		this.wrappedTracer = wrappedTracer;
-	}
+  public ConnectLoggingTracer(Tracer wrappedTracer) {
+    this.wrappedTracer = wrappedTracer;
+  }
 
 
-	@Override
-	public ScopeManager scopeManager() {
-		return wrappedTracer.scopeManager();
-	}
+  @Override
+  public ScopeManager scopeManager() {
+    return wrappedTracer.scopeManager();
+  }
 
-	@Override
-	public Span activeSpan() {
-		return wrappedTracer.activeSpan();
-	}
+  @Override
+  public Span activeSpan() {
+    return wrappedTracer.activeSpan();
+  }
 
-	class LoggingSpanBuilder implements  Tracer.SpanBuilder {
-		private final SpanBuilder spanBuilder;
+  @Override
+  public SpanBuilder buildSpan(String s) {
+    return new LoggingSpanBuilder(wrappedTracer.buildSpan(s));
+  }
 
-		LoggingSpanBuilder(SpanBuilder spanBuilder) {
-			this.spanBuilder = spanBuilder;
-		}
+  @Override
+  public <C> void inject(SpanContext spanContext, Format<C> format, C c) {
+    wrappedTracer.inject(spanContext, format, c);
+  }
 
-		@Override
-		public SpanBuilder asChildOf(SpanContext parent) {
-			return spanBuilder.asChildOf(parent);
-		}
+  @Override
+  public <C> SpanContext extract(Format<C> format, C c) {
+    SpanContext ctx = wrappedTracer.extract(format, c);
 
-		@Override
-		public SpanBuilder asChildOf(Span parent) {
-			return spanBuilder.asChildOf(parent);
-		}
+    ctx.baggageItems().forEach(entry -> {
+      if (REQUEST_ID.equals(entry.getKey())) {
+        ConnectContext.requestId.set(entry.getValue());
+      }
+    });
+    return ctx;
+  }
 
-		@Override
-		public SpanBuilder addReference(String referenceType, SpanContext referencedContext) {
-			return spanBuilder.addReference(referenceType, referencedContext);
-		}
+  class LoggingSpanBuilder implements Tracer.SpanBuilder {
+    private final SpanBuilder spanBuilder;
 
-		@Override
-		public SpanBuilder ignoreActiveSpan() {
-			return spanBuilder.ignoreActiveSpan();
-		}
+    LoggingSpanBuilder(SpanBuilder spanBuilder) {
+      this.spanBuilder = spanBuilder;
+    }
 
-		@Override
-		public SpanBuilder withTag(String key, String value) {
-			return spanBuilder.withTag(key, value);
-		}
+    @Override
+    public SpanBuilder asChildOf(SpanContext parent) {
+      return spanBuilder.asChildOf(parent);
+    }
 
-		@Override
-		public SpanBuilder withTag(String key, boolean value) {
-			return spanBuilder.withTag(key, value);
-		}
+    @Override
+    public SpanBuilder asChildOf(Span parent) {
+      return spanBuilder.asChildOf(parent);
+    }
 
-		@Override
-		public SpanBuilder withTag(String key, Number value) {
-			return spanBuilder.withTag(key, value);
-		}
+    @Override
+    public SpanBuilder addReference(String referenceType, SpanContext referencedContext) {
+      return spanBuilder.addReference(referenceType, referencedContext);
+    }
 
-		@Override
-		public SpanBuilder withStartTimestamp(long microseconds) {
-			return spanBuilder.withStartTimestamp(microseconds);
-		}
+    @Override
+    public SpanBuilder ignoreActiveSpan() {
+      return spanBuilder.ignoreActiveSpan();
+    }
 
-		@Override
-		public Scope startActive(boolean finishSpanOnClose) {
-			Scope scope = spanBuilder.startActive(finishSpanOnClose);
+    @Override
+    public SpanBuilder withTag(String key, String value) {
+      return spanBuilder.withTag(key, value);
+    }
 
-			if (scope.span().getBaggageItem(REQUEST_ID) == null) {
-				scope.span().setBaggageItem(REQUEST_ID, UUID.randomUUID().toString());
-			}
+    @Override
+    public SpanBuilder withTag(String key, boolean value) {
+      return spanBuilder.withTag(key, value);
+    }
 
-			return scope;
-		}
+    @Override
+    public SpanBuilder withTag(String key, Number value) {
+      return spanBuilder.withTag(key, value);
+    }
 
-		@Override
-		public Span startManual() {
-			Span span = spanBuilder.startManual();
+    @Override
+    public SpanBuilder withStartTimestamp(long microseconds) {
+      return spanBuilder.withStartTimestamp(microseconds);
+    }
 
-			if (span.getBaggageItem(REQUEST_ID) == null) {
-				span.setBaggageItem(REQUEST_ID, UUID.randomUUID().toString());
-			}
+    @Override
+    public Scope startActive(boolean finishSpanOnClose) {
+      Scope scope = spanBuilder.startActive(finishSpanOnClose);
 
-			return span;
-		}
+      if (scope.span().getBaggageItem(REQUEST_ID) == null) {
+        scope.span().setBaggageItem(REQUEST_ID, UUID.randomUUID().toString());
+      }
 
-		@Override
-		public Span start() {
-			Span span = spanBuilder.start();
+      return scope;
+    }
 
-			if (span.getBaggageItem(REQUEST_ID) == null) {
-				span.setBaggageItem(REQUEST_ID, UUID.randomUUID().toString());
-			}
+    @Override
+    public Span startManual() {
+      Span span = spanBuilder.startManual();
 
-			return span;
-		}
-	}
+      if (span.getBaggageItem(REQUEST_ID) == null) {
+        span.setBaggageItem(REQUEST_ID, UUID.randomUUID().toString());
+      }
 
-	@Override
-	public SpanBuilder buildSpan(String s) {
-		return new LoggingSpanBuilder(wrappedTracer.buildSpan(s));
-	}
+      return span;
+    }
 
-	@Override
-	public <C> void inject(SpanContext spanContext, Format<C> format, C c) {
-		wrappedTracer.inject(spanContext, format, c);
-	}
+    @Override
+    public Span start() {
+      Span span = spanBuilder.start();
 
-	@Override
-	public <C> SpanContext extract(Format<C> format, C c) {
-		SpanContext ctx = wrappedTracer.extract(format, c);
-		
-		ctx.baggageItems().forEach(entry -> {
-			if (REQUEST_ID.equals(entry.getKey())) {
-				ConnectContext.requestId.set(entry.getValue());
-			}
-		});
-		return ctx;
-	}
+      if (span.getBaggageItem(REQUEST_ID) == null) {
+        span.setBaggageItem(REQUEST_ID, UUID.randomUUID().toString());
+      }
+
+      return span;
+    }
+  }
 }

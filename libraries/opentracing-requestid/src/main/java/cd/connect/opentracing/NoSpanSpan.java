@@ -5,6 +5,7 @@ import io.opentracing.SpanContext;
 import io.opentracing.propagation.TextMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,14 +30,22 @@ public class NoSpanSpan implements Span, SpanContext {
   private NoSpanSpan priorActiveSpan;
   private boolean priorSpanSetting = false;
 
-  protected NoSpanSpan(String id, NoSpanSpan priorActiveSpan, Consumer<NoSpanSpan> cleanupCallback) {
+  NoSpanSpan(String id, NoSpanSpan priorActiveSpan, Consumer<NoSpanSpan> cleanupCallback) {
     log.info("new span created with id {}", id);
     this.id = id;
     this.priorActiveSpan = priorActiveSpan;
     this.cleanupCallback = cleanupCallback;
+
+    if (priorActiveSpan != null) {
+      baggage.putAll(priorActiveSpan.baggage);
+    }
   }
 
-  public static NoSpanSpan extractTextMap(TextMap map, NoSpanSpan activeSpan, Consumer<NoSpanSpan> cleanupCallback) {
+  public String getId() {
+    return id;
+  }
+
+  static NoSpanSpan extractTextMap(TextMap map, Consumer<NoSpanSpan> cleanupCallback) {
     log.info("attempting to extract trace");
     // make a copy we can jump into
     Map<String, String> copy = new HashMap<>();
@@ -46,7 +55,7 @@ public class NoSpanSpan implements Span, SpanContext {
     String id = copy.get(X_ACCEL_TRACEID);
 
     if (id != null) {
-      NoSpanSpan span = new NoSpanSpan(id, activeSpan, cleanupCallback);
+      NoSpanSpan span = new NoSpanSpan(id, null, cleanupCallback);
 
       // check for baggage
       String baggage = copy.get(X_ACCEL_HEADERS);
@@ -83,7 +92,10 @@ public class NoSpanSpan implements Span, SpanContext {
       this.priorActiveSpan = newPriorSpan;
     } else {
       priorSpanSetting = true; // detect loops
-      if (priorActiveSpan != null && priorActiveSpan != newPriorSpan) {
+      if (priorActiveSpan != newPriorSpan && newPriorSpan != null) {
+        baggage.putAll(newPriorSpan.baggage);
+      }
+      if (priorActiveSpan != null && priorActiveSpan != newPriorSpan && newPriorSpan != null) {
         // this could loop around and around, but the idea is to push the prior span further back
         newPriorSpan.setPriorSpan(priorActiveSpan);
       }

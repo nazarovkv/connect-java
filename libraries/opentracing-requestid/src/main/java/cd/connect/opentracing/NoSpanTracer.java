@@ -18,68 +18,51 @@ import java.util.function.Consumer;
  */
 public class NoSpanTracer implements Tracer, Consumer<NoSpanSpan> {
   private static final Logger log = LoggerFactory.getLogger(NoSpanTracer.class);
-  private ThreadLocal<NoSpanSpan> spans = new ThreadLocal<>();
+  protected ThreadLocal<NoSpanScope> spans = new ThreadLocal<>();
 
   @Override
   public ScopeManager scopeManager() {
     return new ScopeManager() {
       @Override
       public Scope activate(Span span, boolean finishSpanOnClose) {
-        NoSpanSpan prior = spans.get();
-        NoSpanSpan newActiveSpan = (NoSpanSpan) span;
-        if (prior != null) {
-          (newActiveSpan).setPriorSpan(prior);
-        }
+        NoSpanSpan noSpan = (NoSpanSpan) span;
+        spans.set(new NoSpanScope(noSpan));
 
-        spans.set(newActiveSpan);
-        return new NoSpanScope(newActiveSpan);
+        noSpan.incInterest();
+
+        return spans.get();
       }
 
       @Override
       public Scope active() {
-        NoSpanSpan active = spans.get();
-
-        if (active != null) {
-          return new NoSpanScope(active);
-        }
-
-        return null;
+        return spans.get();
       }
     };
   }
 
   @Override
   public Span activeSpan() {
-    return spans.get();
-  }
-
-  protected NoSpanSpan ensureWeHaveActiveSpan() {
-    NoSpanSpan noSpanSpan = spans.get();
-    if (noSpanSpan == null) {
-      noSpanSpan = new NoSpanSpan(UUID.randomUUID().toString(), null, this);
-      spans.set(noSpanSpan);
-    }
-
-    return noSpanSpan;
+    NoSpanScope scope = spans.get();
+    return scope == null ? null : scope.span;
   }
 
   @Override
   public void accept(NoSpanSpan finishingSpan) {
     NoSpanSpan priorSpan = finishingSpan.getPriorSpan();
 
-    log.info("required to remove span: {}", spans.get() == finishingSpan);
-    if (spans.get() == finishingSpan) {
+    log.info("span {} has been finished: is it active? {}", finishingSpan.getId(), activeSpan() == finishingSpan);
+    if (activeSpan() == finishingSpan) {
       spans.remove();
 
       if (priorSpan != null) {
-        spans.set(priorSpan);
+        spans.set(new NoSpanScope(priorSpan));
       }
     }
   }
 
   @Override
   public SpanBuilder buildSpan(String operationName) {
-    return new NoSpanSpanBuilder();
+    return new NoSpanSpanBuilder(operationName, this);
   }
 
   @Override
@@ -102,17 +85,13 @@ public class NoSpanTracer implements Tracer, Consumer<NoSpanSpan> {
     NoSpanSpan newSpan = null;
 
     if (format == Format.Builtin.HTTP_HEADERS) {
-      newSpan = NoSpanSpan.extractTextMap((TextMap) carrier, spans.get(), this);
+      newSpan = NoSpanSpan.extractTextMap((TextMap) carrier,  this);
     } else if (format == Format.Builtin.TEXT_MAP) {
-      newSpan = NoSpanSpan.extractTextMap((TextMap) carrier, spans.get(), this);
+      newSpan = NoSpanSpan.extractTextMap((TextMap) carrier, this);
     } else if (format == Format.Builtin.BINARY) {
       log.error("No support for binary headers");
     } else {
       log.error("Unknown format");
-    }
-
-    if (newSpan != null) {
-      spans.set(newSpan);
     }
 
     return newSpan;
@@ -123,7 +102,6 @@ public class NoSpanTracer implements Tracer, Consumer<NoSpanSpan> {
 
     NoSpanScope(NoSpanSpan span) {
       this.span = span;
-      span.incInterest();
     }
 
     @Override
@@ -138,14 +116,24 @@ public class NoSpanTracer implements Tracer, Consumer<NoSpanSpan> {
   }
 
   class NoSpanSpanBuilder implements SpanBuilder {
+    private NoSpanSpan span;
+
+    NoSpanSpanBuilder(String opName, Consumer<NoSpanSpan> callback) {
+      span = new NoSpanSpan(UUID.randomUUID().toString(), spans.get() == null ? null : spans.get().span, callback);
+      span.setOperationName(opName);
+    }
 
     @Override
     public SpanBuilder asChildOf(SpanContext parent) {
+      log.info("setting {} as parent span of {}", ((NoSpanSpan)parent).getId(), span.getId());
+      span.setPriorSpan((NoSpanSpan)parent);
       return this;
     }
 
     @Override
     public SpanBuilder asChildOf(Span parent) {
+      log.info("setting {} as parent span of {}", ((NoSpanSpan)parent).getId(), span.getId());
+      span.setPriorSpan((NoSpanSpan)parent);
       return this;
     }
 
@@ -156,21 +144,25 @@ public class NoSpanTracer implements Tracer, Consumer<NoSpanSpan> {
 
     @Override
     public SpanBuilder ignoreActiveSpan() {
+      span.setPriorSpan(null);
       return this;
     }
 
     @Override
     public SpanBuilder withTag(String key, String value) {
+      span.setTag(key, value);
       return this;
     }
 
     @Override
     public SpanBuilder withTag(String key, boolean value) {
+      span.setTag(key, value);
       return this;
     }
 
     @Override
     public SpanBuilder withTag(String key, Number value) {
+      span.setTag(key, value);
       return this;
     }
 
@@ -181,19 +173,23 @@ public class NoSpanTracer implements Tracer, Consumer<NoSpanSpan> {
 
     @Override
     public Scope startActive(boolean finishSpanOnClose) {
-      return new NoSpanScope(ensureWeHaveActiveSpan());
+      return scopeManager().activate(span, finishSpanOnClose);
     }
 
     @Override
     public Span startManual() {
-      NoSpanSpan span = ensureWeHaveActiveSpan();
-      span.incInterest();
+      startActive(true);
       return span;
     }
 
+    /**
+     * this one isn't activated
+     * @return
+     */
     @Override
     public Span start() {
-      return startManual();
+      span.incInterest();
+      return span;
     }
   }
 }
