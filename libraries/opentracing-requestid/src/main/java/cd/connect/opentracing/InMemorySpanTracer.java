@@ -11,24 +11,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 /**
  * @author Richard Vowles - https://plus.google.com/+RichardVowles
  */
-public class NoSpanTracer implements Tracer, Consumer<NoSpanSpan> {
-  private static final Logger log = LoggerFactory.getLogger(NoSpanTracer.class);
-  protected ThreadLocal<NoSpanScope> spans = new ThreadLocal<>();
+public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
+  private static final Logger log = LoggerFactory.getLogger(InMemorySpanTracer.class);
+  protected ThreadLocal<InMemoryScope> spans = new ThreadLocal<>();
 
   @Override
   public ScopeManager scopeManager() {
     return new ScopeManager() {
       @Override
       public Scope activate(Span span, boolean finishSpanOnClose) {
-        NoSpanSpan noSpan = (NoSpanSpan) span;
-        spans.set(new NoSpanScope(noSpan));
-
-        noSpan.incInterest();
+        InMemorySpan noSpan = (InMemorySpan) span;
+        spans.set(new InMemoryScope(noSpan));
 
         return spans.get();
       }
@@ -42,33 +41,33 @@ public class NoSpanTracer implements Tracer, Consumer<NoSpanSpan> {
 
   @Override
   public Span activeSpan() {
-    NoSpanScope scope = spans.get();
+    InMemoryScope scope = spans.get();
     return scope == null ? null : scope.span;
   }
 
   @Override
-  public void accept(NoSpanSpan finishingSpan) {
-    NoSpanSpan priorSpan = finishingSpan.getPriorSpan();
+  public void accept(InMemorySpan finishingSpan) {
+    InMemorySpan priorSpan = finishingSpan.getPriorSpan();
 
-    log.info("span {} has been finished: is it active? {}", finishingSpan.getId(), activeSpan() == finishingSpan);
+    log.debug("span {} has been finished: is it active? {}", finishingSpan.getId(), activeSpan() == finishingSpan);
     if (activeSpan() == finishingSpan) {
       spans.remove();
 
       if (priorSpan != null) {
-        spans.set(new NoSpanScope(priorSpan));
+        spans.set(new InMemoryScope(priorSpan));
       }
     }
   }
 
   @Override
   public SpanBuilder buildSpan(String operationName) {
-    return new NoSpanSpanBuilder(operationName, this);
+    return new InMemorySpanBuilder(operationName, this);
   }
 
   @Override
   public <C> void inject(SpanContext spanContext, Format<C> format, C carrier) {
-    if (spanContext instanceof NoSpanSpan) {
-      NoSpanSpan span = (NoSpanSpan) spanContext;
+    if (spanContext instanceof InMemorySpan) {
+      InMemorySpan span = (InMemorySpan) spanContext;
 
       if (format == Format.Builtin.HTTP_HEADERS) {
         span.injectTextMap((TextMap) carrier);
@@ -82,12 +81,12 @@ public class NoSpanTracer implements Tracer, Consumer<NoSpanSpan> {
 
   @Override
   public <C> SpanContext extract(Format<C> format, C carrier) {
-    NoSpanSpan newSpan = null;
+    InMemorySpan newSpan = null;
 
     if (format == Format.Builtin.HTTP_HEADERS) {
-      newSpan = NoSpanSpan.extractTextMap((TextMap) carrier,  this);
+      newSpan = InMemorySpan.extractTextMap((TextMap) carrier,  this);
     } else if (format == Format.Builtin.TEXT_MAP) {
-      newSpan = NoSpanSpan.extractTextMap((TextMap) carrier, this);
+      newSpan = InMemorySpan.extractTextMap((TextMap) carrier, this);
     } else if (format == Format.Builtin.BINARY) {
       log.error("No support for binary headers");
     } else {
@@ -97,16 +96,23 @@ public class NoSpanTracer implements Tracer, Consumer<NoSpanSpan> {
     return newSpan;
   }
 
-  class NoSpanScope implements Scope {
-    private final NoSpanSpan span;
+  // when one of these gets created, another client is interested in this span
+  // so we increase its garbage count. This is how Executor pools propagate spans
+  // by creating new scopes foe them after getting the active span.
+  class InMemoryScope implements Scope {
+    private final InMemorySpan span;
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
-    NoSpanScope(NoSpanSpan span) {
+    InMemoryScope(InMemorySpan span) {
       this.span = span;
+      span.incInterest();
     }
 
     @Override
     public void close() {
-      span.finish();
+      if (closed.compareAndSet(false, true) && span != null) {
+        span.finish();
+      }
     }
 
     @Override
@@ -115,25 +121,25 @@ public class NoSpanTracer implements Tracer, Consumer<NoSpanSpan> {
     }
   }
 
-  class NoSpanSpanBuilder implements SpanBuilder {
-    private NoSpanSpan span;
+  class InMemorySpanBuilder implements SpanBuilder {
+    private InMemorySpan span;
 
-    NoSpanSpanBuilder(String opName, Consumer<NoSpanSpan> callback) {
-      span = new NoSpanSpan(UUID.randomUUID().toString(), spans.get() == null ? null : spans.get().span, callback);
+    InMemorySpanBuilder(String opName, Consumer<InMemorySpan> callback) {
+      span = new InMemorySpan(UUID.randomUUID().toString(), spans.get() == null ? null : spans.get().span, callback);
       span.setOperationName(opName);
     }
 
     @Override
     public SpanBuilder asChildOf(SpanContext parent) {
-      log.info("setting {} as parent span of {}", ((NoSpanSpan)parent).getId(), span.getId());
-      span.setPriorSpan((NoSpanSpan)parent);
+      log.debug("setting {} as parent span of {}", ((InMemorySpan)parent).getId(), span.getId());
+      span.setPriorSpan((InMemorySpan)parent);
       return this;
     }
 
     @Override
     public SpanBuilder asChildOf(Span parent) {
-      log.info("setting {} as parent span of {}", ((NoSpanSpan)parent).getId(), span.getId());
-      span.setPriorSpan((NoSpanSpan)parent);
+      log.debug("setting {} as parent span of {}", ((InMemorySpan)parent).getId(), span.getId());
+      span.setPriorSpan((InMemorySpan)parent);
       return this;
     }
 

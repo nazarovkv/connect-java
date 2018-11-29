@@ -5,7 +5,6 @@ import io.opentracing.SpanContext;
 import io.opentracing.propagation.TextMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -17,21 +16,21 @@ import java.util.stream.Collectors;
 /**
  * @author Richard Vowles - https://plus.google.com/+RichardVowles
  */
-public class NoSpanSpan implements Span, SpanContext {
-  private static final Logger log = LoggerFactory.getLogger(NoSpanSpan.class);
+public class InMemorySpan implements Span, SpanContext {
+  private static final Logger log = LoggerFactory.getLogger(InMemorySpan.class);
   private static final String X_ACCEL_PREFIX = "x-acc-";
   private static final String X_ACCEL_TRACEID = X_ACCEL_PREFIX + "traceid";
   private static final String X_ACCEL_HEADERS = X_ACCEL_PREFIX + "baggage";
   private final String id;
-  private final Consumer<NoSpanSpan> cleanupCallback;
+  private final Consumer<InMemorySpan> cleanupCallback;
   private Map<String, String> baggage = new HashMap<>();
   private Map<String, String> tags = new HashMap<>();
   private AtomicInteger garbageCounter = new AtomicInteger(0);
-  private NoSpanSpan priorActiveSpan;
+  private InMemorySpan priorActiveSpan;
   private boolean priorSpanSetting = false;
 
-  NoSpanSpan(String id, NoSpanSpan priorActiveSpan, Consumer<NoSpanSpan> cleanupCallback) {
-    log.info("new span created with id {}", id);
+  InMemorySpan(String id, InMemorySpan priorActiveSpan, Consumer<InMemorySpan> cleanupCallback) {
+    log.debug("new span created with id {}", id);
     this.id = id;
     this.priorActiveSpan = priorActiveSpan;
     this.cleanupCallback = cleanupCallback;
@@ -45,8 +44,8 @@ public class NoSpanSpan implements Span, SpanContext {
     return id;
   }
 
-  static NoSpanSpan extractTextMap(TextMap map, Consumer<NoSpanSpan> cleanupCallback) {
-    log.info("attempting to extract trace");
+  static InMemorySpan extractTextMap(TextMap map, Consumer<InMemorySpan> cleanupCallback) {
+    log.debug("attempting to extract trace");
     // make a copy we can jump into
     Map<String, String> copy = new HashMap<>();
     map.iterator().forEachRemaining(c -> copy.put(c.getKey().toLowerCase(), c.getValue()));
@@ -55,7 +54,7 @@ public class NoSpanSpan implements Span, SpanContext {
     String id = copy.get(X_ACCEL_TRACEID);
 
     if (id != null) {
-      NoSpanSpan span = new NoSpanSpan(id, null, cleanupCallback);
+      InMemorySpan span = new InMemorySpan(id, null, cleanupCallback);
 
       // check for baggage
       String baggage = copy.get(X_ACCEL_HEADERS);
@@ -73,7 +72,7 @@ public class NoSpanSpan implements Span, SpanContext {
       return span;
     }
 
-    log.info("no trace found");
+    log.debug("no trace found");
 
     return null;
   }
@@ -83,11 +82,11 @@ public class NoSpanSpan implements Span, SpanContext {
     return this;
   }
 
-  public NoSpanSpan getPriorSpan() {
+  public InMemorySpan getPriorSpan() {
     return priorActiveSpan;
   }
 
-  public NoSpanSpan setPriorSpan(NoSpanSpan newPriorSpan) {
+  public InMemorySpan setPriorSpan(InMemorySpan newPriorSpan) {
     if (priorSpanSetting) {
       this.priorActiveSpan = newPriorSpan;
     } else {
@@ -136,37 +135,37 @@ public class NoSpanSpan implements Span, SpanContext {
 
   @Override
   public Span log(Map<String, ?> fields) {
-    log.info("opentracing: {}", fields);
+    log.debug("opentracing: {}", fields);
     return this;
   }
 
   @Override
   public Span log(long timestampMicroseconds, Map<String, ?> fields) {
-    log.info("opentracing: @{} -> {}", timestampMicroseconds, fields);
+    log.debug("opentracing: @{} -> {}", timestampMicroseconds, fields);
     return this;
   }
 
   @Override
   public Span log(String event) {
-    log.info("opentracing: event {}", event);
+    log.debug("opentracing: event {}", event);
     return this;
   }
 
   // 0.3.0 standard?
   public Span log(String event, String message) {
-    log.info("opentracing: event {}, message {}", event, message);
+    log.debug("opentracing: event {}, message {}", event, message);
     return this;
   }
 
   @Override
   public Span log(long timestampMicroseconds, String event) {
-    log.info("opentracing: event {} @{}", event, timestampMicroseconds);
+    log.debug("opentracing: event {} @{}", event, timestampMicroseconds);
     return this;
   }
 
   @Override
   public Span setBaggageItem(String key, String value) {
-    log.info("setting baggage: {} = `{}`", key, value);
+    log.debug("setting baggage: {} = `{}`", key, value);
     baggage.put(key, value);
     return this;
   }
