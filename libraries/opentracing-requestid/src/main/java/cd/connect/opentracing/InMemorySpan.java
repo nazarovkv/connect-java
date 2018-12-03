@@ -18,9 +18,9 @@ import java.util.stream.Collectors;
  */
 public class InMemorySpan implements Span, SpanContext {
   private static final Logger log = LoggerFactory.getLogger(InMemorySpan.class);
-  private static final String X_ACCEL_PREFIX = "x-acc-";
-  private static final String X_ACCEL_TRACEID = X_ACCEL_PREFIX + "traceid";
-  private static final String X_ACCEL_HEADERS = X_ACCEL_PREFIX + "baggage";
+  public static final String X_ACCEL_PREFIX = "x-acc-";
+  public static final String X_ACCEL_TRACEID = X_ACCEL_PREFIX + "traceid";
+  public static final String X_ACCEL_HEADERS = X_ACCEL_PREFIX + "baggage";
   private final String id;
   private final Consumer<InMemorySpan> cleanupCallback;
   private Map<String, String> baggage = new HashMap<>();
@@ -68,6 +68,8 @@ public class InMemorySpan implements Span, SpanContext {
           }
         });
       }
+
+      log.debug("baggage is {}", span.baggage);
 
       return span;
     }
@@ -204,6 +206,7 @@ public class InMemorySpan implements Span, SpanContext {
 
   public void injectTextMap(TextMap map) {
     map.put(X_ACCEL_TRACEID, id);
+    log.debug("inject baggage: {}", baggage);
     if (baggage.size() > 0) {
       map.put(X_ACCEL_HEADERS, baggage.keySet().stream()
         .map(String::toLowerCase)

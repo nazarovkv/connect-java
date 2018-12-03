@@ -184,8 +184,7 @@ public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
 
     @Override
     public Span startManual() {
-      startActive(true);
-      return span;
+      return startActive(true).span();
     }
 
     /**
@@ -194,7 +193,6 @@ public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
      */
     @Override
     public Span start() {
-      span.incInterest();
       return span;
     }
   }
