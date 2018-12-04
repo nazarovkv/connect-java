@@ -44,6 +44,11 @@ public class InMemorySpan implements Span, SpanContext {
     return id;
   }
 
+  public boolean isFinished() {
+    return garbageCounter.get() == 0;
+  }
+
+
   static InMemorySpan extractTextMap(TextMap map, Consumer<InMemorySpan> cleanupCallback) {
     log.debug("attempting to extract trace");
     // make a copy we can jump into
@@ -60,7 +65,7 @@ public class InMemorySpan implements Span, SpanContext {
       String baggage = copy.get(X_ACCEL_HEADERS);
       if (baggage != null) {
         Arrays.stream(baggage.split(",")).forEach(b -> {
-          String bItem = copy.get(X_ACCEL_PREFIX + b);
+          String bItem = copy.get(X_ACCEL_PREFIX + b.toLowerCase());
           if (bItem != null) {
             span.setBaggageItem(b, bItem.replace("\\\\", "\\"));
           } else {
@@ -184,9 +189,15 @@ public class InMemorySpan implements Span, SpanContext {
 
   @Override
   public void finish() {
-    log.debug("ignoring finish");
     if (garbageCounter.decrementAndGet() == 0) {
       cleanupCallback.accept(this);
+    } else {
+      try {
+        throw new RuntimeException("here");
+      } catch (RuntimeException re) {
+
+        log.debug("inmem ignoring finish - {}: {}", garbageCounter.get(), id, re);
+      }
     }
   }
 
@@ -197,6 +208,11 @@ public class InMemorySpan implements Span, SpanContext {
 
   protected void incInterest() {
     garbageCounter.incrementAndGet();
+    try {
+      throw new RuntimeException("here");
+    } catch (RuntimeException re) {
+      log.debug("inmem new interest {}: {}", garbageCounter.get(), id, re);
+    }
   }
 
   @Override
@@ -208,9 +224,7 @@ public class InMemorySpan implements Span, SpanContext {
     map.put(X_ACCEL_TRACEID, id);
     log.debug("inject baggage: {}", baggage);
     if (baggage.size() > 0) {
-      map.put(X_ACCEL_HEADERS, baggage.keySet().stream()
-        .map(String::toLowerCase)
-        .collect(Collectors.joining(",")));
+      map.put(X_ACCEL_HEADERS, String.join(",", baggage.keySet()));
 
       baggage.forEach((k, v) -> {
         map.put(X_ACCEL_PREFIX + k, v.replace("\\", "\\\\"));

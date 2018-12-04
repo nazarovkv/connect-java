@@ -21,22 +21,26 @@ public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
   private static final Logger log = LoggerFactory.getLogger(InMemorySpanTracer.class);
   protected ThreadLocal<InMemoryScope> spans = new ThreadLocal<>();
 
+  private final ScopeManager scopeManager = new ScopeManager() {
+    @Override
+    public Scope activate(Span span, boolean finishSpanOnClose) {
+      InMemorySpan noSpan = (InMemorySpan) span;
+      spans.set(new InMemoryScope(noSpan));
+
+      return spans.get();
+    }
+
+    @Override
+    public Scope active() {
+      return spans.get();
+    }
+  };
+
+
+
   @Override
   public ScopeManager scopeManager() {
-    return new ScopeManager() {
-      @Override
-      public Scope activate(Span span, boolean finishSpanOnClose) {
-        InMemorySpan noSpan = (InMemorySpan) span;
-        spans.set(new InMemoryScope(noSpan));
-
-        return spans.get();
-      }
-
-      @Override
-      public Scope active() {
-        return spans.get();
-      }
-    };
+    return scopeManager;
   }
 
   @Override
@@ -52,6 +56,10 @@ public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
     log.debug("span {} has been finished: is it active? {}", finishingSpan.getId(), activeSpan() == finishingSpan);
     if (activeSpan() == finishingSpan) {
       spans.remove();
+
+      while (priorSpan != null && priorSpan.isFinished()) {
+        priorSpan = priorSpan.getPriorSpan();
+      }
 
       if (priorSpan != null) {
         spans.set(new InMemoryScope(priorSpan));
