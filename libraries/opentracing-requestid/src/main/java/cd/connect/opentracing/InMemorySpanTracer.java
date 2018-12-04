@@ -25,7 +25,7 @@ public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
     @Override
     public Scope activate(Span span, boolean finishSpanOnClose) {
       InMemorySpan noSpan = (InMemorySpan) span;
-      spans.set(new InMemoryScope(noSpan));
+      spans.set(new InMemoryScope(noSpan, finishSpanOnClose));
 
       return spans.get();
     }
@@ -57,13 +57,13 @@ public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
     if (activeSpan() == finishingSpan) {
       spans.remove();
 
-      while (priorSpan != null && priorSpan.isFinished()) {
-        priorSpan = priorSpan.getPriorSpan();
-      }
+//      while (priorSpan != null && priorSpan.isFinished()) {
+//        priorSpan = priorSpan.getPriorSpan();
+//      }
 
-      if (priorSpan != null) {
-        spans.set(new InMemoryScope(priorSpan));
-      }
+//      if (priorSpan != null) {
+//        spans.set(new InMemoryScope(priorSpan));
+//      }
     }
   }
 
@@ -110,15 +110,19 @@ public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
   class InMemoryScope implements Scope {
     private final InMemorySpan span;
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final boolean finishOnClosed;
 
-    InMemoryScope(InMemorySpan span) {
+    InMemoryScope(InMemorySpan span, boolean finishOnClosed) {
       this.span = span;
-      span.incInterest();
+      this.finishOnClosed = finishOnClosed;
+      if (finishOnClosed) {
+        span.incInterest();
+      }
     }
 
     @Override
     public void close() {
-      if (closed.compareAndSet(false, true) && span != null) {
+      if (closed.compareAndSet(false, true) && span != null && finishOnClosed) {
         span.finish();
       }
     }

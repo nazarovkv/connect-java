@@ -1,6 +1,5 @@
 package cd.connect.opentracing;
 
-import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import org.slf4j.Logger;
@@ -29,7 +28,7 @@ public class LoggerSpan implements Span, SpanContext {
   private Map<String, Object> logs = new HashMap<>();
   private List<String> events = new ArrayList<>();
   private final LoggingSpanTracer tracer;
-  private LoggerScope priorActiveScope;
+  private LoggerSpan priorSpan;
   private boolean priorSpanSetting = false;
   private final String id;
   private AtomicInteger garbageCounter = new AtomicInteger(0);
@@ -59,25 +58,25 @@ public class LoggerSpan implements Span, SpanContext {
     return this;
   }
 
-  LoggerScope getPriorScope() {
-    return priorActiveScope;
+  public LoggerSpan getPriorSpan() {
+    return priorSpan;
   }
 
-  void setPriorScope(LoggerScope newPriorScope) {
-    LoggerSpan priorSpan = (newPriorScope == null) ? null : ((LoggerSpan)newPriorScope.span());
+  void setPriorSpan(LoggerSpan newPriorSpan) {
+    LoggerSpan priorSpan = newPriorSpan;
 
     if (priorSpanSetting) {
-      this.priorActiveScope = newPriorScope;
+      this.priorSpan = newPriorSpan;
     } else {
       priorSpanSetting = true; // detect loops
-      if (priorActiveScope != newPriorScope && newPriorScope != null) {
+      if (this.priorSpan != newPriorSpan && newPriorSpan != null) {
         baggage.putAll(priorSpan.baggage);
       }
-      if (priorActiveScope != null && priorActiveScope != newPriorScope && newPriorScope != null) {
+      if (this.priorSpan != null && this.priorSpan != newPriorSpan && newPriorSpan != null) {
         // this could loop around and around, but the idea is to push the prior span further back
-        priorSpan.setPriorScope(priorActiveScope);
+        priorSpan.setPriorSpan(this.priorSpan);
       }
-      this.priorActiveScope = newPriorScope;
+      this.priorSpan = newPriorSpan;
       priorSpanSetting = false; // detect loops
     }
   }
@@ -250,6 +249,9 @@ public class LoggerSpan implements Span, SpanContext {
 
   protected void incInterest() {
     garbageCounter.incrementAndGet();
+    if (garbageCounter.get() > 1) {
+      log.info("here");
+    }
     try {
       throw new RuntimeException("here");
     } catch (RuntimeException re) {

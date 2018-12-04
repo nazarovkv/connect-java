@@ -21,17 +21,15 @@ public class LoggerScope implements Scope {
   LoggerScope(LoggerSpan span, boolean finishSpanOnClose) {
     this.span = span;
     this.finishSpanOnClose = finishSpanOnClose;
-    span.incInterest();
+    if (finishSpanOnClose) {
+      span.incInterest();
+    }
   }
 
   public boolean isClosed() {
     return closed.get();
   }
-
-  public Scope getWrappedScope() {
-    return wrappedScope;
-  }
-
+  
   public void setWrappedScope(Scope wrappedScope) {
     this.wrappedScope = wrappedScope;
   }
@@ -42,10 +40,10 @@ public class LoggerScope implements Scope {
       if (span != null && finishSpanOnClose) {
         span.finish();
       }
+    }
 
-      if (wrappedScope != null) {
-        wrappedScope.close();
-      }
+    if (wrappedScope != null) {
+      wrappedScope.close();
     }
   }
 
