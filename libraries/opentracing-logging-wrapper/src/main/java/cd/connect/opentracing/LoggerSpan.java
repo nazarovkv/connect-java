@@ -1,5 +1,7 @@
 package cd.connect.opentracing;
 
+import cd.connect.context.ConnectContext;
+import cd.connect.context.NamedConnectContext;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import org.slf4j.Logger;
@@ -7,11 +9,14 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static cd.connect.opentracing.OpenTracingLogger.WELL_KNOWN_REQUEST_ID;
 
 /**
  * This is designed to extract the baggage items of the active trace
@@ -165,11 +170,37 @@ public class LoggerSpan implements Span, SpanContext {
     return this;
   }
 
+  private String tryMany(Map<String, String> source, String ...names) {
+    List<String> acutalNames = Arrays.asList(names);
+
+    Map.Entry<String, String> found = source.entrySet().stream()
+      .filter(e -> acutalNames.contains(e.getKey()))
+      .findFirst()
+      .orElse(null);
+
+    if (found != null) {
+      return source.remove(found.getKey());
+    } else {
+      return null;
+    }
+  }
+
   // there is no way to set baggage on an item until after you have started it and made it active, so a typical
   // trace will not log its own baggage
   private void updateLoggedBaggage() {
     if (id.equals(MDC.get(OPENTRACING_ID))) {
-      MDC.put(OPENTRACING_BAGGAGE, ObjectMapperProvider.wrapObject(baggage));
+      Map<String, String> clonedBaggage = new HashMap<>(baggage);
+
+      String requestId = tryMany(clonedBaggage, WELL_KNOWN_REQUEST_ID, "requestid", "request-id");
+      if (requestId != null) {
+        ConnectContext.requestId.set(requestId);
+      }
+      String scenarioId = tryMany(clonedBaggage, "scenarioid", "scenarioId", "scenario-id");
+      if (scenarioId != null) {
+        ConnectContext.scenarioId.set(scenarioId);
+      }
+
+      MDC.put(OPENTRACING_BAGGAGE, ObjectMapperProvider.wrapObject(clonedBaggage));
     }
   }
 
@@ -202,6 +233,8 @@ public class LoggerSpan implements Span, SpanContext {
     // don't remove if not ours
     if (id.equals(MDC.get(OPENTRACING_ID))) {
       log.info("removing tracing");
+      ConnectContext.requestId.remove();
+      ConnectContext.scenarioId.remove();
       MDC.remove(OPENTRACING_ID);
       MDC.remove(OPENTRACING_TAGS);
       MDC.remove(OPENTRACING_BAGGAGE);
@@ -228,9 +261,12 @@ public class LoggerSpan implements Span, SpanContext {
     return this;
   }
 
-  @Override
-  public void finish() {
+  public void finish(boolean callFinishOnWrappedSpan) {
+    if (wrappedSpan instanceof InMemorySpan) {
+      log.debug("closing logger: {}, inmemory: ", getId(), ((InMemorySpan)wrappedSpan).getId());
+    }
     if (garbageCounter.decrementAndGet() == 0) {
+      log.debug("logger finish ok");
       tracer.cleanup(this);
     } else {
       try {
@@ -239,7 +275,15 @@ public class LoggerSpan implements Span, SpanContext {
         log.debug("logger ignoring finish - {}: {}", garbageCounter.get(), id, re);
       }
     }
-    wrappedSpan.finish();
+
+    if (callFinishOnWrappedSpan) {
+      wrappedSpan.finish();
+    }
+  }
+
+  @Override
+  public void finish() {
+    finish(true);
   }
 
   @Override

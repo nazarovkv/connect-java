@@ -1,5 +1,6 @@
 package cd.connect.opentracing;
 
+import io.opentracing.References;
 import io.opentracing.Scope;
 import io.opentracing.ScopeManager;
 import io.opentracing.Span;
@@ -10,6 +11,8 @@ import io.opentracing.propagation.TextMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -19,20 +22,45 @@ import java.util.function.Consumer;
  */
 public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
   private static final Logger log = LoggerFactory.getLogger(InMemorySpanTracer.class);
-  protected ThreadLocal<InMemoryScope> spans = new ThreadLocal<>();
+  protected ThreadLocal<Queue<InMemoryScope>> activeScopeStack = new ThreadLocal<>();
+
+  void pushScope(InMemoryScope scope) {
+    Queue<InMemoryScope> scopes = this.activeScopeStack.get();
+    if (scopes == null) {
+      scopes = new LinkedList<>();
+      this.activeScopeStack.set(scopes);
+    }
+    scopes.add(scope);
+  }
+
+  InMemoryScope popScope() {
+    Queue<InMemoryScope> scopes = this.activeScopeStack.get();
+    if (scopes != null && scopes.size() > 0) {
+      scopes.poll();
+      return scopes.peek();
+    } else {
+      return null;
+    }
+  }
+
+  InMemoryScope activeScope() {
+    Queue<InMemoryScope> scopes = this.activeScopeStack.get();
+    return (scopes != null && scopes.size() > 0) ? scopes.peek() : null;
+  }
 
   private final ScopeManager scopeManager = new ScopeManager() {
     @Override
     public Scope activate(Span span, boolean finishSpanOnClose) {
       InMemorySpan noSpan = (InMemorySpan) span;
-      spans.set(new InMemoryScope(noSpan, finishSpanOnClose));
+      InMemoryScope scope = new InMemoryScope(noSpan, finishSpanOnClose);
+      pushScope(scope);
 
-      return spans.get();
+      return scope;
     }
 
     @Override
     public Scope active() {
-      return spans.get();
+      return activeScope();
     }
   };
 
@@ -45,8 +73,8 @@ public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
 
   @Override
   public Span activeSpan() {
-    InMemoryScope scope = spans.get();
-    return scope == null ? null : scope.span;
+    InMemoryScope scope = activeScope();
+    return (scope != null) ? scope.span() : null;
   }
 
   @Override
@@ -54,16 +82,14 @@ public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
     InMemorySpan priorSpan = finishingSpan.getPriorSpan();
 
     log.debug("span {} has been finished: is it active? {}", finishingSpan.getId(), activeSpan() == finishingSpan);
+
     if (activeSpan() == finishingSpan) {
-      spans.remove();
-
-//      while (priorSpan != null && priorSpan.isFinished()) {
-//        priorSpan = priorSpan.getPriorSpan();
-//      }
-
-//      if (priorSpan != null) {
-//        spans.set(new InMemoryScope(priorSpan));
-//      }
+      popScope(); // remove the last one
+      InMemoryScope scope = activeScope();
+      
+      while (scope != null && scope.span.isFinished()) {
+        scope = popScope();
+      }
     }
   }
 
@@ -137,7 +163,7 @@ public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
     private InMemorySpan span;
 
     InMemorySpanBuilder(String opName, Consumer<InMemorySpan> callback) {
-      span = new InMemorySpan(UUID.randomUUID().toString(), spans.get() == null ? null : spans.get().span, callback);
+      span = new InMemorySpan(UUID.randomUUID().toString(), activeScope() == null ? null : activeScope().span, callback);
       span.setOperationName(opName);
     }
 
@@ -157,6 +183,14 @@ public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
 
     @Override
     public SpanBuilder addReference(String referenceType, SpanContext referencedContext) {
+      if (References.CHILD_OF.equals(referenceType)) {
+        return asChildOf(referencedContext);
+      } else { // follows from
+        if (referencedContext instanceof InMemorySpan) {
+          span.setPriorSpan((InMemorySpan)referencedContext);
+        }
+      }
+
       return this;
     }
 

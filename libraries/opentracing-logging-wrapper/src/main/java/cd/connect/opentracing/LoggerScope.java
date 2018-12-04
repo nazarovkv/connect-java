@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author Richard Vowles - https://plus.google.com/+RichardVowles
  */
 public class LoggerScope implements Scope {
-  private final LoggerSpan span;
+  final LoggerSpan span;
   private Scope wrappedScope;
   private final AtomicBoolean closed = new AtomicBoolean(false);
   private final boolean finishSpanOnClose;
@@ -38,7 +38,7 @@ public class LoggerScope implements Scope {
   public void close() {
     if (closed.compareAndSet(false, true)) {
       if (span != null && finishSpanOnClose) {
-        span.finish();
+        span.finish(false); // don't call finish because wrappedScope.close will
       }
     }
 

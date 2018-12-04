@@ -1,5 +1,6 @@
 package cd.connect.opentracing;
 
+import io.opentracing.References;
 import io.opentracing.Scope;
 import io.opentracing.ScopeManager;
 import io.opentracing.Span;
@@ -8,6 +9,9 @@ import io.opentracing.Tracer;
 import io.opentracing.propagation.Format;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.LinkedList;
+import java.util.Queue;
 
 /**
  * This class is designed to ensure that the Connect context is able to extract
@@ -18,7 +22,31 @@ import org.slf4j.LoggerFactory;
 public class LoggingSpanTracer implements Tracer {
   private static final Logger log = LoggerFactory.getLogger(LoggingSpanTracer.class);
   private final Tracer wrappedTracer;
-  private ThreadLocal<LoggerScope> spans = new ThreadLocal<>();
+  protected ThreadLocal<Queue<LoggerScope>> activeScopeStack = new ThreadLocal<>();
+
+  void pushScope(LoggerScope scope) {
+    Queue<LoggerScope> scopes = this.activeScopeStack.get();
+    if (scopes == null) {
+      scopes = new LinkedList<>();
+      this.activeScopeStack.set(scopes);
+    }
+    scopes.add(scope);
+  }
+
+  LoggerScope popScope() {
+    Queue<LoggerScope> scopes = this.activeScopeStack.get();
+    if (scopes != null && scopes.size() > 0) {
+      scopes.poll();
+      return scopes.peek();
+    } else {
+      return null;
+    }
+  }
+
+  LoggerScope activeScope() {
+    Queue<LoggerScope> scopes = this.activeScopeStack.get();
+    return (scopes != null && scopes.size() > 0) ? scopes.peek() : null;
+  }
 
   public LoggingSpanTracer(Tracer wrappedTracer) {
     this.wrappedTracer = wrappedTracer;
@@ -31,17 +59,11 @@ public class LoggingSpanTracer implements Tracer {
 
     log.debug("loggerspan {} has been finished: is it active? {}", finishingSpan.getId(), activeSpan() == finishingSpan);
     if (activeSpan() == finishingSpan) {
-      spans.remove();
-
-      // if the span represented by this scope is finished, we want to walk further
-      // back
-      while (priorSpan != null && priorSpan.isFinished()) {
-        priorSpan = priorSpan.getPriorSpan();
+      popScope();
+      LoggerScope scope = activeScope();
+      while (scope != null && scope.span.isFinished()) {
+        scope = popScope();
       }
-
-//      if (priorSpan != null) {
-//        spans.set(new LoggerScope(priorSpan, true));
-//      }
     }
   }
 
@@ -61,14 +83,14 @@ public class LoggingSpanTracer implements Tracer {
         loggerSpan.setBaggageItem(OpenTracingLogger.WELL_KNOWN_REQUEST_ID, OpenTracingLogger.randomRequestIdProvider.get());
       }
 
-      spans.set(newScope);
+      pushScope(newScope);
 
       return newScope;
     }
 
     @Override
     public Scope active() {
-      return spans.get();
+      return activeScope();
     }
   };
 
@@ -79,8 +101,8 @@ public class LoggingSpanTracer implements Tracer {
 
   @Override
   public Span activeSpan() {
-    LoggerScope scope = spans.get();
-    return scope == null ? null : scope.span();
+    LoggerScope scope = activeScope();
+    return (scope == null) ? null : scope.span();
   }
 
   @Override
@@ -123,7 +145,7 @@ public class LoggingSpanTracer implements Tracer {
 
     LoggingSpanBuilder(SpanBuilder spanBuilder) {
       this.spanBuilder = spanBuilder;
-      loggerSpan = new LoggerSpan(LoggingSpanTracer.this, spans.get());
+      loggerSpan = new LoggerSpan(LoggingSpanTracer.this, activeScope());
     }
 
     @Override
@@ -152,7 +174,17 @@ public class LoggingSpanTracer implements Tracer {
 
     @Override
     public SpanBuilder addReference(String referenceType, SpanContext referencedContext) {
-      this.spanBuilder = spanBuilder.addReference(referenceType, referencedContext);
+      if (References.CHILD_OF.equals(referenceType)) {
+        return asChildOf(referencedContext);
+      } else { // follows from
+        if (referencedContext instanceof LoggerSpan) {
+          this.spanBuilder = spanBuilder.addReference(referenceType, ((LoggerSpan)referencedContext).getWrappedSpan().context());
+          loggerSpan.setPriorSpan((LoggerSpan)referencedContext);
+        } else {
+          this.spanBuilder = spanBuilder.addReference(referenceType, referencedContext);
+        }
+      }
+
       // we don't use it, so ignore it
       return this;
     }
@@ -208,7 +240,7 @@ public class LoggingSpanTracer implements Tracer {
         loggerSpan.setBaggageItem(OpenTracingLogger.WELL_KNOWN_REQUEST_ID, OpenTracingLogger.randomRequestIdProvider.get());
       }
 
-      spans.set(newScope);
+      pushScope(newScope);
 
       return newScope;
     }
@@ -220,7 +252,8 @@ public class LoggingSpanTracer implements Tracer {
 
     @Override
     public Span start() {
-      return startActive(true).span();
+      loggerSpan.setWrappedSpan(spanBuilder.start());
+      return loggerSpan;
     }
   }
 }

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -31,7 +32,7 @@ public class InMemorySpan implements Span, SpanContext {
 
   InMemorySpan(String id, InMemorySpan priorActiveSpan, Consumer<InMemorySpan> cleanupCallback) {
     log.debug("new span created with id {}", id);
-    this.id = id;
+    this.id = id == null ? UUID.randomUUID().toString() : id;
     this.priorActiveSpan = priorActiveSpan;
     this.cleanupCallback = cleanupCallback;
 
@@ -190,6 +191,12 @@ public class InMemorySpan implements Span, SpanContext {
   @Override
   public void finish() {
     if (garbageCounter.decrementAndGet() == 0) {
+      try {
+        throw new RuntimeException("here");
+      } catch (RuntimeException re) {
+        log.debug("inmem finish ok {}: {}", garbageCounter.get(), id, re);
+      }
+      log.debug("inmem finish ok");
       cleanupCallback.accept(this);
     } else {
       try {

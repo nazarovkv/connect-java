@@ -18,20 +18,7 @@ public class LoggerSpanLoggingEnhancer implements JsonLogEnhancer {
     return 30;
   }
 
-  private String tryMany(Map<String, Object> source, String ...names) {
-    List<String> acutalNames = Arrays.asList(names);
 
-    Map.Entry<String, Object> found = source.entrySet().stream()
-      .filter(e -> acutalNames.contains(e.getKey()))
-      .findFirst()
-      .orElse(null);
-
-    if (found != null) {
-      return source.remove(found.getKey()).toString();
-    } else {
-      return null;
-    }
-  }
 
   private void pushOpenTracing(Map<String, Object> log, Map<String, Object> yours) {
     if (yours.size() > 0) {
@@ -49,21 +36,8 @@ public class LoggerSpanLoggingEnhancer implements JsonLogEnhancer {
     String logsJson = context.remove(LoggerSpan.OPENTRACING_LOG_MESSAGES);
     String tagsJson = context.remove(LoggerSpan.OPENTRACING_TAGS);
     context.remove(LoggerSpan.OPENTRACING_ID);
-
-    if (baggageJson != null) {
-      // request id get pulled out to top level
-      Map<String, Object> baggage = ObjectMapperProvider.unwrapMap(baggageJson);
-      String requestId = tryMany(baggage, WELL_KNOWN_REQUEST_ID, "requestid", "request-id");
-      if (requestId != null) {
-        log.put("request-id", requestId);
-      }
-      String scenarioId = tryMany(baggage, "scenarioid", "scenarioId", "scenario-id");
-      if (scenarioId != null) {
-        log.put("scenario-id", scenarioId);
-      }
-
-      pushOpenTracing(log, baggage);
-    }
+    
+    pushOpenTracing(log, ObjectMapperProvider.unwrapMap(baggageJson));
 
     // maybe should wipe these after logging them once
     pushOpenTracing(log, ObjectMapperProvider.unwrapMap(logsJson));
