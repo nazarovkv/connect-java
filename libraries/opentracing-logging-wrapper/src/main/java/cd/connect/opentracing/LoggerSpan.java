@@ -1,7 +1,6 @@
 package cd.connect.opentracing;
 
 import cd.connect.context.ConnectContext;
-import cd.connect.context.NamedConnectContext;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import org.slf4j.Logger;
@@ -258,9 +257,6 @@ public class LoggerSpan implements Span, SpanContext {
   }
 
   public void finish(boolean callFinishOnWrappedSpan) {
-//    if (wrappedSpan instanceof InMemorySpan) {
-//      log.debug("closing logger: {}, inmemory: ", getId(), ((InMemorySpan)wrappedSpan).getId());
-//    }
     if (garbageCounter.decrementAndGet() == 0) {
 //      log.debug("logger finish ok");
       removeActive();
