@@ -36,6 +36,17 @@ public class LoggerSpanLoggingEnhancer implements JsonLogEnhancer {
     String logsJson = context.remove(LoggerSpan.OPENTRACING_LOG_MESSAGES);
     String tagsJson = context.remove(LoggerSpan.OPENTRACING_TAGS);
     context.remove(LoggerSpan.OPENTRACING_ID);
+
+    String appName = context.remove(LoggerSpan.OPENTRACING_APPNAME);
+    String originAppName = context.remove(LoggerSpan.OPENTRACING_ORIGIN_APPNAME);
+
+    if (appName != null) {
+      log.put("appName", appName);
+    }
+
+    if (originAppName != null) {
+      log.put("originApp", originAppName);
+    }
     
     pushOpenTracing(log, ObjectMapperProvider.unwrapMap(baggageJson));
 

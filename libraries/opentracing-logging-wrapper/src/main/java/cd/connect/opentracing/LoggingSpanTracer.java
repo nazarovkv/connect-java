@@ -10,6 +10,8 @@ import io.opentracing.propagation.Format;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -23,6 +25,8 @@ public class LoggingSpanTracer implements Tracer {
   private static final Logger log = LoggerFactory.getLogger(LoggingSpanTracer.class);
   private final Tracer wrappedTracer;
   protected ThreadLocal<Queue<LoggerScope>> activeScopeStack = new ThreadLocal<>();
+  private String appName;
+
 
   void pushScope(LoggerScope scope) {
     Queue<LoggerScope> scopes = this.activeScopeStack.get();
@@ -56,6 +60,16 @@ public class LoggingSpanTracer implements Tracer {
 
   public LoggingSpanTracer(Tracer wrappedTracer) {
     this.wrappedTracer = wrappedTracer;
+
+    appName = System.getProperty("app.name");
+    
+    if (appName == null) {
+      try {
+        appName = InetAddress.getLocalHost().getHostName();
+      } catch (UnknownHostException e) {
+        appName = "unknown-app";
+      }
+    }
   }
 
   private LoggerScope cleanScopes() {
@@ -67,7 +81,7 @@ public class LoggingSpanTracer implements Tracer {
       }
       // take the last active scope and make its span active again for logging
       if (scope != null && !scope.span.isFinished()) {
-        scope.span.setActive();
+        scope.span.setActive(appName);
       }
 
       log.debug("scope count outstanding: {}", activeScopeStack.get().size());
@@ -94,10 +108,14 @@ public class LoggingSpanTracer implements Tracer {
       Scope wrappedScope = wrappedTracer.scopeManager().activate(loggerSpan.getWrappedSpan(), finishSpanOnClose);
       newScope.setWrappedScope(wrappedScope);
 
-      loggerSpan.setActive();
+      loggerSpan.setActive(appName);
 
       if (loggerSpan.getBaggageItem(OpenTracingLogger.WELL_KNOWN_REQUEST_ID) == null) {
         loggerSpan.setBaggageItem(OpenTracingLogger.WELL_KNOWN_REQUEST_ID, OpenTracingLogger.randomRequestIdProvider.get());
+      }
+
+      if (loggerSpan.getBaggageItem(OpenTracingLogger.WELL_KNOWN_ORIGIN_APP) == null) {
+        loggerSpan.setBaggageItem(OpenTracingLogger.WELL_KNOWN_ORIGIN_APP, appName);
       }
 
       pushScope(newScope);
@@ -251,7 +269,7 @@ public class LoggingSpanTracer implements Tracer {
 
       newScope.setWrappedScope(scope);
 
-      loggerSpan.setActive();
+      loggerSpan.setActive(appName);
 
       if (loggerSpan.getBaggageItem(OpenTracingLogger.WELL_KNOWN_REQUEST_ID) == null) {
         loggerSpan.setBaggageItem(OpenTracingLogger.WELL_KNOWN_REQUEST_ID, OpenTracingLogger.randomRequestIdProvider.get());

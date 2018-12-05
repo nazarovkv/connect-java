@@ -15,7 +15,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static cd.connect.opentracing.OpenTracingLogger.WELL_KNOWN_ORIGIN_APP;
 import static cd.connect.opentracing.OpenTracingLogger.WELL_KNOWN_REQUEST_ID;
+import static cd.connect.opentracing.OpenTracingLogger.WELL_KNOWN_SCENARIO_ID;
 
 /**
  * This is designed to extract the baggage items of the active trace
@@ -192,10 +194,12 @@ public class LoggerSpan implements Span, SpanContext {
       if (requestId != null) {
         ConnectContext.requestId.set(requestId);
       }
-      String scenarioId = tryMany(clonedBaggage, "scenarioid", "scenarioId", "scenario-id");
+      String scenarioId = tryMany(clonedBaggage, WELL_KNOWN_SCENARIO_ID, "scenarioId", "scenario-id");
       if (scenarioId != null) {
         ConnectContext.scenarioId.set(scenarioId);
       }
+
+      clonedBaggage.remove(WELL_KNOWN_ORIGIN_APP);
 
       MDC.put(OPENTRACING_BAGGAGE, ObjectMapperProvider.wrapObject(clonedBaggage));
     }
@@ -217,13 +221,22 @@ public class LoggerSpan implements Span, SpanContext {
   static final String OPENTRACING_LOG_MESSAGES = "opentracing.logs";
   static final String OPENTRACING_TAGS = "opentracing.tags";
   static final String OPENTRACING_ID = "opentracing.id";
+  static final String OPENTRACING_APPNAME = "opentracing.appName";
+  static final String OPENTRACING_ORIGIN_APPNAME = "opentracing.orginApp";
 
 
-  void setActive() {
+  void setActive(String appName) {
     MDC.put(OPENTRACING_ID, this.id);
     updateLoggedBaggage();
     updateLoggedMessages();
     updateLoggedTags();
+    MDC.put(OPENTRACING_APPNAME, appName);
+
+    String originApp = getBaggageItem(WELL_KNOWN_ORIGIN_APP);
+    
+    if (originApp != null) {
+      MDC.put(OPENTRACING_ORIGIN_APPNAME, originApp);
+    }
   }
 
   void removeActive() {
@@ -235,6 +248,8 @@ public class LoggerSpan implements Span, SpanContext {
       MDC.remove(OPENTRACING_TAGS);
       MDC.remove(OPENTRACING_BAGGAGE);
       MDC.remove(OPENTRACING_LOG_MESSAGES);
+      MDC.remove(OPENTRACING_APPNAME);
+      MDC.remove(OPENTRACING_ORIGIN_APPNAME);
     }
   }
 
