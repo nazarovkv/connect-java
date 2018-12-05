@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * @author Richard Vowles - https://plus.google.com/+RichardVowles
@@ -23,18 +22,16 @@ public class InMemorySpan implements Span, SpanContext {
   public static final String X_ACCEL_TRACEID = X_ACCEL_PREFIX + "traceid";
   public static final String X_ACCEL_HEADERS = X_ACCEL_PREFIX + "baggage";
   private final String id;
-  private final Consumer<InMemorySpan> cleanupCallback;
   private Map<String, String> baggage = new HashMap<>();
   private Map<String, String> tags = new HashMap<>();
   private AtomicInteger garbageCounter = new AtomicInteger(0);
   private InMemorySpan priorActiveSpan;
   private boolean priorSpanSetting = false;
 
-  InMemorySpan(String id, InMemorySpan priorActiveSpan, Consumer<InMemorySpan> cleanupCallback) {
+  InMemorySpan(String id, InMemorySpan priorActiveSpan) {
     log.debug("new span created with id {}", id);
     this.id = id == null ? UUID.randomUUID().toString() : id;
     this.priorActiveSpan = priorActiveSpan;
-    this.cleanupCallback = cleanupCallback;
 
     if (priorActiveSpan != null) {
       baggage.putAll(priorActiveSpan.baggage);
@@ -50,7 +47,7 @@ public class InMemorySpan implements Span, SpanContext {
   }
 
 
-  static InMemorySpan extractTextMap(TextMap map, Consumer<InMemorySpan> cleanupCallback) {
+  static InMemorySpan extractTextMap(TextMap map) {
     log.debug("attempting to extract trace");
     // make a copy we can jump into
     Map<String, String> copy = new HashMap<>();
@@ -60,7 +57,7 @@ public class InMemorySpan implements Span, SpanContext {
     String id = copy.get(X_ACCEL_TRACEID);
 
     if (id != null) {
-      InMemorySpan span = new InMemorySpan(id, null, cleanupCallback);
+      InMemorySpan span = new InMemorySpan(id, null);
 
       // check for baggage
       String baggage = copy.get(X_ACCEL_HEADERS);
@@ -191,20 +188,19 @@ public class InMemorySpan implements Span, SpanContext {
   @Override
   public void finish() {
     if (garbageCounter.decrementAndGet() == 0) {
-      try {
-        throw new RuntimeException("here");
-      } catch (RuntimeException re) {
-        log.debug("inmem finish ok {}: {}", garbageCounter.get(), id, re);
-      }
+//      try {
+//        throw new RuntimeException("here");
+//      } catch (RuntimeException re) {
+//        log.debug("inmem finish ok {}: {}", garbageCounter.get(), id, re);
+//      }
       log.debug("inmem finish ok");
-      cleanupCallback.accept(this);
     } else {
-      try {
-        throw new RuntimeException("here");
-      } catch (RuntimeException re) {
-
-        log.debug("inmem ignoring finish - {}: {}", garbageCounter.get(), id, re);
-      }
+//      try {
+//        throw new RuntimeException("here");
+//      } catch (RuntimeException re) {
+//
+//        log.debug("inmem ignoring finish - {}: {}", garbageCounter.get(), id, re);
+//      }
     }
   }
 
@@ -215,11 +211,6 @@ public class InMemorySpan implements Span, SpanContext {
 
   protected void incInterest() {
     garbageCounter.incrementAndGet();
-    try {
-      throw new RuntimeException("here");
-    } catch (RuntimeException re) {
-      log.debug("inmem new interest {}: {}", garbageCounter.get(), id, re);
-    }
   }
 
   @Override
@@ -229,6 +220,13 @@ public class InMemorySpan implements Span, SpanContext {
 
   public void injectTextMap(TextMap map) {
     map.put(X_ACCEL_TRACEID, id);
+//    if (baggage.size() == 0) {
+//      try {
+//        throw new RuntimeException();
+//      } catch (RuntimeException re) {
+//        log.error("here", re);
+//      }
+//    }
     log.debug("inject baggage: {}", baggage);
     if (baggage.size() > 0) {
       map.put(X_ACCEL_HEADERS, String.join(",", baggage.keySet()));

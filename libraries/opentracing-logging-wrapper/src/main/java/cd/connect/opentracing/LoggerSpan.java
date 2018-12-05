@@ -32,15 +32,13 @@ public class LoggerSpan implements Span, SpanContext {
   private Map<String, Object> tags = new HashMap<>();
   private Map<String, Object> logs = new HashMap<>();
   private List<String> events = new ArrayList<>();
-  private final LoggingSpanTracer tracer;
   private LoggerSpan priorSpan;
   private boolean priorSpanSetting = false;
   private final String id;
   private AtomicInteger garbageCounter = new AtomicInteger(0);
 
 
-  public LoggerSpan(LoggingSpanTracer tracer, LoggerScope priorActiveSpan) {
-    this.tracer = tracer;
+  public LoggerSpan(LoggerScope priorActiveSpan) {
     this.id = UUID.randomUUID().toString();
     if (priorActiveSpan != null) {
       baggage.putAll(((LoggerSpan)priorActiveSpan.span()).baggage);
@@ -232,14 +230,12 @@ public class LoggerSpan implements Span, SpanContext {
   void removeActive() {
     // don't remove if not ours
     if (id.equals(MDC.get(OPENTRACING_ID))) {
-      log.info("removing tracing");
       ConnectContext.requestId.remove();
       ConnectContext.scenarioId.remove();
       MDC.remove(OPENTRACING_ID);
       MDC.remove(OPENTRACING_TAGS);
       MDC.remove(OPENTRACING_BAGGAGE);
       MDC.remove(OPENTRACING_LOG_MESSAGES);
-      log.info("removed tracing");
     }
   }
 
@@ -262,18 +258,18 @@ public class LoggerSpan implements Span, SpanContext {
   }
 
   public void finish(boolean callFinishOnWrappedSpan) {
-    if (wrappedSpan instanceof InMemorySpan) {
-      log.debug("closing logger: {}, inmemory: ", getId(), ((InMemorySpan)wrappedSpan).getId());
-    }
+//    if (wrappedSpan instanceof InMemorySpan) {
+//      log.debug("closing logger: {}, inmemory: ", getId(), ((InMemorySpan)wrappedSpan).getId());
+//    }
     if (garbageCounter.decrementAndGet() == 0) {
-      log.debug("logger finish ok");
-      tracer.cleanup(this);
+//      log.debug("logger finish ok");
+      removeActive();
     } else {
-      try {
-        throw new RuntimeException("here");
-      } catch (RuntimeException re) {
-        log.debug("logger ignoring finish - {}: {}", garbageCounter.get(), id, re);
-      }
+//      try {
+//        throw new RuntimeException("here");
+//      } catch (RuntimeException re) {
+//        log.debug("logger ignoring finish - {}: {}", garbageCounter.get(), id, re);
+//      }
     }
 
     if (callFinishOnWrappedSpan) {
@@ -293,14 +289,14 @@ public class LoggerSpan implements Span, SpanContext {
 
   protected void incInterest() {
     garbageCounter.incrementAndGet();
-    if (garbageCounter.get() > 1) {
-      log.info("here");
-    }
-    try {
-      throw new RuntimeException("here");
-    } catch (RuntimeException re) {
-      log.debug("logger new interest {}: {}", garbageCounter.get(), id, re);
-    }
+//    if (garbageCounter.get() > 1) {
+//      log.info("here");
+//    }
+//    try {
+//      throw new RuntimeException("here");
+//    } catch (RuntimeException re) {
+//      log.debug("logger new interest {}: {}", garbageCounter.get(), id, re);
+//    }
 
   }
 

@@ -36,7 +36,8 @@ public class LoggingSpanTracer implements Tracer {
   LoggerScope popScope() {
     Queue<LoggerScope> scopes = this.activeScopeStack.get();
     if (scopes != null && scopes.size() > 0) {
-      scopes.poll();
+      LoggerScope poll = scopes.poll();
+      log.debug("dropping scope for span {}", poll.span.getId());
       return scopes.peek();
     } else {
       return null;
@@ -48,23 +49,39 @@ public class LoggingSpanTracer implements Tracer {
     return (scopes != null && scopes.size() > 0) ? scopes.peek() : null;
   }
 
+  boolean activeScopeClosed() {
+    Queue<LoggerScope> scopes = this.activeScopeStack.get();
+    return (scopes != null && scopes.size() > 0) && scopes.peek().isClosed();
+  }
+
   public LoggingSpanTracer(Tracer wrappedTracer) {
     this.wrappedTracer = wrappedTracer;
   }
 
-  void cleanup(LoggerSpan finishingSpan) {
-    LoggerSpan priorSpan = finishingSpan.getPriorSpan();
-
-    finishingSpan.removeActive();
-
-    log.debug("loggerspan {} has been finished: is it active? {}", finishingSpan.getId(), activeSpan() == finishingSpan);
-    if (activeSpan() == finishingSpan) {
+  private LoggerScope cleanScopes() {
+    if (activeScopeClosed()) {
       popScope();
       LoggerScope scope = activeScope();
-      while (scope != null && scope.span.isFinished()) {
+      while (scope != null && scope.isClosed()) {
         scope = popScope();
       }
+      // take the last active scope and make its span active again for logging
+      if (scope != null && !scope.span.isFinished()) {
+        scope.span.setActive();
+      }
+
+      log.debug("scope count outstanding: {}", activeScopeStack.get().size());
+      return scope;
+    } else {
+      return activeScope();
     }
+  }
+
+  void cleanupScope(LoggerScope scope) {
+    scope.span.removeActive();
+
+    log.debug("loggerscope with span {} has been finished", scope.span.getId());
+    cleanScopes();
   }
 
   private final ScopeManager scopeManager = new ScopeManager() {
@@ -72,7 +89,7 @@ public class LoggingSpanTracer implements Tracer {
     public Scope activate(Span span, boolean finishSpanOnClose) {
       LoggerSpan loggerSpan = (LoggerSpan) span;
 
-      LoggerScope newScope = new LoggerScope(loggerSpan, finishSpanOnClose);
+      LoggerScope newScope = new LoggerScope(loggerSpan, finishSpanOnClose, LoggingSpanTracer.this);
 
       Scope wrappedScope = wrappedTracer.scopeManager().activate(loggerSpan.getWrappedSpan(), finishSpanOnClose);
       newScope.setWrappedScope(wrappedScope);
@@ -101,7 +118,7 @@ public class LoggingSpanTracer implements Tracer {
 
   @Override
   public Span activeSpan() {
-    LoggerScope scope = activeScope();
+    LoggerScope scope = cleanScopes();
     return (scope == null) ? null : scope.span();
   }
 
@@ -124,7 +141,7 @@ public class LoggingSpanTracer implements Tracer {
     LoggerSpan span = null;
     if (ctx != null) {
 
-      span = new LoggerSpan(this, null);
+      span = new LoggerSpan(null);
 
       if (ctx instanceof Span) {
         span.setWrappedSpan((Span)ctx);
@@ -145,7 +162,7 @@ public class LoggingSpanTracer implements Tracer {
 
     LoggingSpanBuilder(SpanBuilder spanBuilder) {
       this.spanBuilder = spanBuilder;
-      loggerSpan = new LoggerSpan(LoggingSpanTracer.this, activeScope());
+      loggerSpan = new LoggerSpan(activeScope());
     }
 
     @Override
@@ -230,7 +247,7 @@ public class LoggingSpanTracer implements Tracer {
       // we can't use "activate" in our own scopeManager as it will activate the wrapped span again
       loggerSpan.setWrappedSpan(scope.span());
 
-      LoggerScope newScope = new LoggerScope(loggerSpan, finishSpanOnClose);
+      LoggerScope newScope = new LoggerScope(loggerSpan, finishSpanOnClose, LoggingSpanTracer.this);
 
       newScope.setWrappedScope(scope);
 

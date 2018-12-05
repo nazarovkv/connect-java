@@ -14,13 +14,11 @@ import org.slf4j.LoggerFactory;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 /**
  * @author Richard Vowles - https://plus.google.com/+RichardVowles
  */
-public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
+public class InMemorySpanTracer implements Tracer {
   private static final Logger log = LoggerFactory.getLogger(InMemorySpanTracer.class);
   protected ThreadLocal<Queue<InMemoryScope>> activeScopeStack = new ThreadLocal<>();
 
@@ -48,11 +46,17 @@ public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
     return (scopes != null && scopes.size() > 0) ? scopes.peek() : null;
   }
 
+  boolean activeScopeClosed() {
+    Queue<InMemoryScope> scopes = this.activeScopeStack.get();
+    return (scopes != null && scopes.size() > 0) && scopes.peek().isClosed();
+  }
+
+
   private final ScopeManager scopeManager = new ScopeManager() {
     @Override
     public Scope activate(Span span, boolean finishSpanOnClose) {
       InMemorySpan noSpan = (InMemorySpan) span;
-      InMemoryScope scope = new InMemoryScope(noSpan, finishSpanOnClose);
+      InMemoryScope scope = new InMemoryScope(noSpan, finishSpanOnClose, InMemorySpanTracer.this);
       pushScope(scope);
 
       return scope;
@@ -73,29 +77,34 @@ public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
 
   @Override
   public Span activeSpan() {
-    InMemoryScope scope = activeScope();
+    InMemoryScope scope = cleanScopes();
     return (scope != null) ? scope.span() : null;
   }
 
-  @Override
-  public void accept(InMemorySpan finishingSpan) {
-    InMemorySpan priorSpan = finishingSpan.getPriorSpan();
-
-    log.debug("span {} has been finished: is it active? {}", finishingSpan.getId(), activeSpan() == finishingSpan);
-
-    if (activeSpan() == finishingSpan) {
+  private InMemoryScope cleanScopes() {
+    if (activeScopeClosed()) {
       popScope(); // remove the last one
       InMemoryScope scope = activeScope();
-      
-      while (scope != null && scope.span.isFinished()) {
+
+      while (scope != null && scope.isClosed()) {
         scope = popScope();
       }
+
+      log.debug("scope count outstanding: {}", activeScopeStack.get().size());
+      return scope;
+    } else {
+      log.debug("active scope still open");
+      return activeScope();
     }
+  }
+
+  public void cleanupScope(InMemoryScope scope) {
+    cleanScopes();
   }
 
   @Override
   public SpanBuilder buildSpan(String operationName) {
-    return new InMemorySpanBuilder(operationName, this);
+    return new InMemorySpanBuilder(operationName);
   }
 
   @Override
@@ -117,10 +126,16 @@ public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
   public <C> SpanContext extract(Format<C> format, C carrier) {
     InMemorySpan newSpan = null;
 
+//    try {
+//      throw new RuntimeException("re");
+//    } catch (RuntimeException re) {
+//      log.debug("extract called", re);
+//    }
+
     if (format == Format.Builtin.HTTP_HEADERS) {
-      newSpan = InMemorySpan.extractTextMap((TextMap) carrier,  this);
+      newSpan = InMemorySpan.extractTextMap((TextMap) carrier);
     } else if (format == Format.Builtin.TEXT_MAP) {
-      newSpan = InMemorySpan.extractTextMap((TextMap) carrier, this);
+      newSpan = InMemorySpan.extractTextMap((TextMap) carrier);
     } else if (format == Format.Builtin.BINARY) {
       log.error("No support for binary headers");
     } else {
@@ -130,40 +145,12 @@ public class InMemorySpanTracer implements Tracer, Consumer<InMemorySpan> {
     return newSpan;
   }
 
-  // when one of these gets created, another client is interested in this span
-  // so we increase its garbage count. This is how Executor pools propagate spans
-  // by creating new scopes foe them after getting the active span.
-  class InMemoryScope implements Scope {
-    private final InMemorySpan span;
-    private final AtomicBoolean closed = new AtomicBoolean(false);
-    private final boolean finishOnClosed;
-
-    InMemoryScope(InMemorySpan span, boolean finishOnClosed) {
-      this.span = span;
-      this.finishOnClosed = finishOnClosed;
-      if (finishOnClosed) {
-        span.incInterest();
-      }
-    }
-
-    @Override
-    public void close() {
-      if (closed.compareAndSet(false, true) && span != null && finishOnClosed) {
-        span.finish();
-      }
-    }
-
-    @Override
-    public Span span() {
-      return span;
-    }
-  }
 
   class InMemorySpanBuilder implements SpanBuilder {
     private InMemorySpan span;
 
-    InMemorySpanBuilder(String opName, Consumer<InMemorySpan> callback) {
-      span = new InMemorySpan(UUID.randomUUID().toString(), activeScope() == null ? null : activeScope().span, callback);
+    InMemorySpanBuilder(String opName) {
+      span = new InMemorySpan(UUID.randomUUID().toString(), activeScope() == null ? null : activeScope().span);
       span.setOperationName(opName);
     }
 
