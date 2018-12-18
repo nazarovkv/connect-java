@@ -272,7 +272,7 @@ public class LoggerSpan implements Span, SpanContext {
   }
 
   public void finish(boolean callFinishOnWrappedSpan) {
-    if (garbageCounter.decrementAndGet() == 0) {
+    if (garbageCounter.decrementAndGet() <= 0) {
 //      log.debug("logger finish ok");
       removeActive();
     } else {
