@@ -52,7 +52,7 @@ public class LoggerSpan implements Span, SpanContext {
 
   // if we are doing an extract from a header, the returned spancontext may
   // not be a span, so we may need to set it later once the span builder has
-  // created it.
+  // created it. in Jaeger for example a spancontext from an extract is just that, it is not a span.
   public void setWrappedSpan(Span wrappedSpan) {
     this.wrappedSpan = wrappedSpan;
   }
@@ -126,7 +126,9 @@ public class LoggerSpan implements Span, SpanContext {
   @Override
   public Span log(Map<String, ?> fields) {
     fields.forEach((key, value) -> logs.put(key, value));
-    wrappedSpan.log(fields);
+    if (wrappedSpan != null) {
+      wrappedSpan.log(fields);
+    }
     updateLoggedMessages();
     return this;
   }
@@ -134,7 +136,9 @@ public class LoggerSpan implements Span, SpanContext {
   @Override
   public Span log(long timestampMicroseconds, Map<String, ?> fields) {
     log(fields);
-    wrappedSpan.log(timestampMicroseconds, fields);
+    if (wrappedSpan != null) {
+      wrappedSpan.log(timestampMicroseconds, fields);
+    }
     updateLoggedMessages();
     return this;
   }
@@ -142,21 +146,27 @@ public class LoggerSpan implements Span, SpanContext {
   @Override
   public Span log(String event) {
     this.events.add(event);
-    wrappedSpan.log(event);
+    if (wrappedSpan != null) {
+      wrappedSpan.log(event);
+    }
     return this;
   }
 
   // 0.3.0 standard, prevents older library usage from barfing
   public Span log(String event, String message) {
     this.events.add(event + ":" + message);
-    wrappedSpan.log(event);
+    if (wrappedSpan != null) {
+      wrappedSpan.log(event);
+    }
     return this;
   }
 
   @Override
   public Span log(long timestampMicroseconds, String event) {
     this.events.add(event + "@" + timestampMicroseconds);
-    wrappedSpan.log(timestampMicroseconds, event);
+    if (wrappedSpan != null) {
+      wrappedSpan.log(timestampMicroseconds, event);
+    }
     return this;
   }
 
@@ -164,7 +174,9 @@ public class LoggerSpan implements Span, SpanContext {
   public Span setBaggageItem(String key, String value) {
     // we keep it as well because we cannot ensure the wrapped span is also a spancontext
     baggage.put(key, value);
-    wrappedSpan.setBaggageItem(key, value);
+    if (wrappedSpan != null) {
+      wrappedSpan.setBaggageItem(key, value);
+    }
     updateLoggedBaggage();
     return this;
   }
@@ -263,7 +275,11 @@ public class LoggerSpan implements Span, SpanContext {
 
   @Override
   public String getBaggageItem(String key) {
-    return wrappedSpan.getBaggageItem(key);
+    if (wrappedSpan != null) {
+      return wrappedSpan.getBaggageItem(key);
+    } else {
+      return baggage.get(key);
+    }
   }
 
   @Override
@@ -283,7 +299,7 @@ public class LoggerSpan implements Span, SpanContext {
 //      }
     }
 
-    if (callFinishOnWrappedSpan) {
+    if (wrappedSpan != null && callFinishOnWrappedSpan) {
       wrappedSpan.finish();
     }
   }
@@ -313,6 +329,10 @@ public class LoggerSpan implements Span, SpanContext {
 
   @Override
   public Iterable<Map.Entry<String, String>> baggageItems() {
-    return baggage.entrySet();
+    if (wrappedSpan != null) {
+      return wrappedSpan.context().baggageItems();
+    } else {
+      return baggage.entrySet();
+    }
   }
 }
