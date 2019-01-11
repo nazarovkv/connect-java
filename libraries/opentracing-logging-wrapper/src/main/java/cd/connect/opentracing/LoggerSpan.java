@@ -37,7 +37,7 @@ public class LoggerSpan implements Span, SpanContext {
   private boolean priorSpanSetting = false;
   private final String id;
   private AtomicInteger garbageCounter = new AtomicInteger(0);
-
+  private SpanContext wrappedSpanContext;
 
   public LoggerSpan(LoggerScope priorActiveSpan) {
     this.id = UUID.randomUUID().toString();
@@ -55,6 +55,29 @@ public class LoggerSpan implements Span, SpanContext {
   // created it. in Jaeger for example a spancontext from an extract is just that, it is not a span.
   public void setWrappedSpan(Span wrappedSpan) {
     this.wrappedSpan = wrappedSpan;
+
+    // the wrapped span can be set quite late and from a span context, so
+    // we should check if we have no baggage and copy it if we need to
+    if (baggage.size() == 0 && wrappedSpan != null) {
+      wrappedSpan.context().baggageItems().forEach(e -> this.baggage.put(e.getKey(), e.getValue()));
+      updateLoggedBaggage();
+    }
+  }
+  public void setWrappedSpanContext(SpanContext ctx) {
+    this.wrappedSpanContext = ctx;
+    
+    if (baggage.size() == 0 && wrappedSpanContext != null) {
+      wrappedSpanContext.baggageItems().forEach(e -> this.baggage.put(e.getKey(), e.getValue()));
+      updateLoggedBaggage();
+    }
+  }
+
+  public SpanContext getWrappedSpanContext() {
+    if (this.wrappedSpan != null) {
+      return this.wrappedSpan.context();
+    } else {
+      return this.wrappedSpanContext;
+    }
   }
 
   @Override
@@ -256,12 +279,11 @@ public class LoggerSpan implements Span, SpanContext {
     if (id.equals(MDC.get(OPENTRACING_ID))) {
       ConnectContext.requestId.remove();
       ConnectContext.scenarioId.remove();
-      MDC.remove(OPENTRACING_ID);
-      MDC.remove(OPENTRACING_TAGS);
-      MDC.remove(OPENTRACING_BAGGAGE);
-      MDC.remove(OPENTRACING_LOG_MESSAGES);
-      MDC.remove(OPENTRACING_APPNAME);
-      MDC.remove(OPENTRACING_ORIGIN_APPNAME);
+      MDC.getCopyOfContextMap().keySet().forEach(k -> {
+        if (k.startsWith("opentracing.")) {
+          MDC.remove(k);
+        }
+      });
     }
   }
 

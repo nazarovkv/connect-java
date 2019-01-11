@@ -149,7 +149,11 @@ public class LoggingSpanTracer implements Tracer {
   public <C> void inject(SpanContext spanContext, Format<C> format, C c) {
     // get the internal span and inject its data, we have none
     LoggerSpan span = (LoggerSpan)spanContext;
-    wrappedTracer.inject(span.getWrappedSpan().context(), format, c);
+    if (span.getWrappedSpan() != null) {
+      wrappedTracer.inject(span.getWrappedSpan().context(), format, c);
+    } else {
+      wrappedTracer.inject(spanContext, format, c);
+    }
   }
 
   @Override
@@ -163,6 +167,8 @@ public class LoggingSpanTracer implements Tracer {
 
       if (ctx instanceof Span) {
         span.setWrappedSpan((Span)ctx);
+      } else {
+        span.setWrappedSpanContext(ctx);
       }
 
       LoggerSpan finalSpan = span;
@@ -186,7 +192,14 @@ public class LoggingSpanTracer implements Tracer {
     @Override
     public SpanBuilder asChildOf(SpanContext parent) {
       if (parent instanceof LoggerSpan) {
-        this.spanBuilder = this.spanBuilder.asChildOf(((LoggerSpan)parent).getWrappedSpan());
+        LoggerSpan loggerSpan = (LoggerSpan)parent;
+        
+        if (loggerSpan.getWrappedSpanContext() != null) {
+          this.spanBuilder = this.spanBuilder.asChildOf(loggerSpan.getWrappedSpanContext());
+        } else {
+          this.spanBuilder = this.spanBuilder.asChildOf(parent);
+        }
+
         loggerSpan.setPriorSpan((LoggerSpan)parent);
       } else {
         this.spanBuilder = this.spanBuilder.asChildOf(parent);
@@ -198,7 +211,16 @@ public class LoggingSpanTracer implements Tracer {
     @Override
     public SpanBuilder asChildOf(Span parent) {
       if (parent instanceof LoggerSpan) {
-        this.spanBuilder = this.spanBuilder.asChildOf(((LoggerSpan)parent).getWrappedSpan());
+        LoggerSpan loggerSpan = (LoggerSpan)parent;
+
+        if (loggerSpan.getWrappedSpan() != null) {
+          this.spanBuilder = this.spanBuilder.asChildOf(loggerSpan.getWrappedSpan());
+        } else if (loggerSpan.getWrappedSpanContext() != null) {
+          this.spanBuilder = this.spanBuilder.asChildOf(loggerSpan.getWrappedSpanContext());
+        } else {
+          this.spanBuilder = this.spanBuilder.asChildOf(parent);
+        }
+
         loggerSpan.setPriorSpan((LoggerSpan)parent);
       } else {
         this.spanBuilder = this.spanBuilder.asChildOf(parent);
@@ -213,8 +235,14 @@ public class LoggingSpanTracer implements Tracer {
         return asChildOf(referencedContext);
       } else { // follows from
         if (referencedContext instanceof LoggerSpan) {
-          this.spanBuilder = spanBuilder.addReference(referenceType, ((LoggerSpan)referencedContext).getWrappedSpan().context());
-          loggerSpan.setPriorSpan((LoggerSpan)referencedContext);
+          LoggerSpan loggerSpan = (LoggerSpan)referencedContext;
+          if (loggerSpan.getWrappedSpanContext() != null) {
+            this.spanBuilder = spanBuilder.addReference(referenceType, loggerSpan.getWrappedSpanContext());
+          } else {
+            this.spanBuilder = spanBuilder.addReference(referenceType, referencedContext);
+          }
+
+          loggerSpan.setPriorSpan(loggerSpan);
         } else {
           this.spanBuilder = spanBuilder.addReference(referenceType, referencedContext);
         }
@@ -288,6 +316,9 @@ public class LoggingSpanTracer implements Tracer {
     @Override
     public Span start() {
       loggerSpan.setWrappedSpan(spanBuilder.start());
+      if (loggerSpan.getBaggageItem(OpenTracingLogger.WELL_KNOWN_REQUEST_ID) == null) {
+        loggerSpan.setBaggageItem(OpenTracingLogger.WELL_KNOWN_REQUEST_ID, OpenTracingLogger.randomRequestIdProvider.get());
+      }
       return loggerSpan;
     }
   }
