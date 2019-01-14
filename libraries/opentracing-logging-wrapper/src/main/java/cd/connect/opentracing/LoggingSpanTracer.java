@@ -7,6 +7,7 @@ import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
 import io.opentracing.propagation.Format;
+import io.opentracing.propagation.TextMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -156,8 +157,16 @@ public class LoggingSpanTracer implements Tracer {
     }
   }
 
+  protected void log(TextMap map) {
+    map.iterator().forEachRemaining(e -> log.info("{}: {}", e.getKey(), e.getValue()));
+  }
+
   @Override
   public <C> SpanContext extract(Format<C> format, C c) {
+//    if (format == Format.Builtin.HTTP_HEADERS) {
+//      log((TextMap)c);
+//    }
+
     SpanContext ctx = wrappedTracer.extract(format, c);
 
     LoggerSpan span = null;
