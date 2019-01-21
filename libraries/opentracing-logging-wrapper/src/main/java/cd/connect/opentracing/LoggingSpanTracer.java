@@ -15,6 +15,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.Stack;
 
 /**
  * This class is designed to ensure that the Connect context is able to extract
@@ -25,37 +26,38 @@ import java.util.Queue;
 public class LoggingSpanTracer implements Tracer {
   private static final Logger log = LoggerFactory.getLogger(LoggingSpanTracer.class);
   private final Tracer wrappedTracer;
-  protected ThreadLocal<Queue<LoggerScope>> activeScopeStack = new ThreadLocal<>();
+  protected ThreadLocal<Stack<LoggerScope>> activeScopeStack = new ThreadLocal<>();
   private String appName;
 
 
   void pushScope(LoggerScope scope) {
-    Queue<LoggerScope> scopes = this.activeScopeStack.get();
+    Stack<LoggerScope> scopes = this.activeScopeStack.get();
     if (scopes == null) {
-      scopes = new LinkedList<>();
+      scopes = new Stack<>();
       this.activeScopeStack.set(scopes);
     }
-    scopes.add(scope);
+
+    scopes.push(scope);
   }
 
   LoggerScope popScope() {
-    Queue<LoggerScope> scopes = this.activeScopeStack.get();
+    Stack<LoggerScope> scopes = this.activeScopeStack.get();
     if (scopes != null && scopes.size() > 0) {
-      LoggerScope poll = scopes.poll();
-      log.debug("dropping scope for span {}", poll.span.getId());
-      return scopes.peek();
+      LoggerScope pop = scopes.pop();
+      log.debug("dropping scope for span {}", pop.span.getId());
+      return  scopes.size() > 0 ? scopes.peek() : null;
     } else {
       return null;
     }
   }
 
   LoggerScope activeScope() {
-    Queue<LoggerScope> scopes = this.activeScopeStack.get();
+    Stack<LoggerScope> scopes = this.activeScopeStack.get();
     return (scopes != null && scopes.size() > 0) ? scopes.peek() : null;
   }
 
   boolean activeScopeClosed() {
-    Queue<LoggerScope> scopes = this.activeScopeStack.get();
+    Stack<LoggerScope> scopes = this.activeScopeStack.get();
     return (scopes != null && scopes.size() > 0) && scopes.peek().isClosed();
   }
 

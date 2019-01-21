@@ -36,7 +36,7 @@ public class LoggerSpan implements Span, SpanContext {
   private LoggerSpan priorSpan;
   private boolean priorSpanSetting = false;
   private final String id;
-  private AtomicInteger garbageCounter = new AtomicInteger(0);
+  private AtomicInteger garbageCounter = new AtomicInteger(1);
   private SpanContext wrappedSpanContext;
 
   public LoggerSpan(LoggerScope priorActiveSpan) {
