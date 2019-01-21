@@ -112,7 +112,9 @@ public class LoggingSpanTracer implements Tracer {
       loggerSpan.setActive(appName);
 
       if (loggerSpan.getBaggageItem(OpenTracingLogger.WELL_KNOWN_REQUEST_ID) == null) {
-        loggerSpan.setBaggageItem(OpenTracingLogger.WELL_KNOWN_REQUEST_ID, OpenTracingLogger.randomRequestIdProvider.get());
+        String requestId = OpenTracingLogger.randomRequestIdProvider.get();
+        loggerSpan.setBaggageItem(OpenTracingLogger.WELL_KNOWN_REQUEST_ID, requestId);
+        loggerSpan.setTag(OpenTracingLogger.WELL_KNOWN_REQUEST_ID, requestId);
       }
 
       if (loggerSpan.getBaggageItem(OpenTracingLogger.WELL_KNOWN_ORIGIN_APP) == null) {
