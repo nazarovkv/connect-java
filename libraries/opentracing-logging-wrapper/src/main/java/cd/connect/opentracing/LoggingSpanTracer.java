@@ -186,7 +186,8 @@ public class LoggingSpanTracer implements Tracer {
 
       LoggerSpan finalSpan = span;
       ctx.baggageItems().forEach(entry -> {
-        finalSpan.setBaggageItem(entry.getKey(), entry.getValue());
+        // force keys to lower case
+        finalSpan.setBaggageItem(entry.getKey().toLowerCase(), entry.getValue());
       });
     }
 
