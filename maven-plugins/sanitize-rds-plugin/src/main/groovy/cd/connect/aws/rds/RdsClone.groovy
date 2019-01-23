@@ -80,6 +80,7 @@ class RdsClone {
 	                                        List<DatabaseTag> tags,
 	                                        String password,
 	                                        boolean multiAZ,
+						String dbParameterGroupName,
 	                                        CreateInstanceResult completed) {
 		try {
 			rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(database))
@@ -108,6 +109,11 @@ class RdsClone {
 
 		if (multiAZ) {
 			println("restoring as multi-AZ")
+		}
+
+		if (dbParameterGroupName) {
+			restoreRequest.withDBParameterGroupName(dbParameterGroupName)
+			println "restoring wth DBParameterGroupName ${dbParameterGroupName}"
 		}
 
 		DBInstance instance = rdsClient.restoreDBInstanceFromDBSnapshot(restoreRequest)
