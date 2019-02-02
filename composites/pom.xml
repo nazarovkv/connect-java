@@ -26,9 +26,7 @@
     <module>connect-composite-spring</module>
     <module>connect-composite-springweb</module>
     <module>connect-composite-springwebapp</module>
-    <!--<module>connect-composite-springboot</module>-->
     <module>connect-composite-test</module>
-    <!--<module>connect-composite-webtoken</module>-->
   </modules>
 
   <build>

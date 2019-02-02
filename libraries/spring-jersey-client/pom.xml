@@ -43,6 +43,11 @@
 	  </dependency>
 	  <dependency>
 		  <groupId>cd.connect.servlet</groupId>
+		  <artifactId>servlet-spring</artifactId>
+		  <version>[1.6, 2)</version>
+	  </dependency>
+	  <dependency>
+		  <groupId>cd.connect.servlet</groupId>
 		  <artifactId>servlet-spring-jersey</artifactId>
 		  <version>[1.5, 2)</version>
 	  </dependency>

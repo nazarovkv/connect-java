@@ -43,7 +43,7 @@
 	</scm>
 
   <properties>
-    <bouncycastle.version>1.55</bouncycastle.version>
+    <bouncycastle.version>1.60</bouncycastle.version>
   </properties>
 
   <dependencies>
