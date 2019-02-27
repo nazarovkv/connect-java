@@ -27,7 +27,7 @@ public interface {{classname}}  {
     @Path("{{path}}"){{/subresourceOperation}}{{#hasConsumes}}
     @Consumes({ {{#consumes}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/consumes}} }){{/hasConsumes}}{{#hasProduces}}
     @Produces({ {{#produces}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/produces}} }){{/hasProduces}}
-    public {{#returnBaseType}}{{returnBaseType}}{{/returnBaseType}}{{^returnBaseType}}Response{{/returnBaseType}} {{nickname}}({{#allParams}}{{>queryParams}}{{>pathParams}}{{>bodyParams}}{{>formParams}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
+    public {{#returnType}}{{{returnType}}}{{/returnType}}{{^returnBaseType}}Response{{/returnBaseType}} {{nickname}}({{#allParams}}{{>queryParams}}{{>pathParams}}{{>bodyParams}}{{>formParams}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
 
 {{/operation}}
 }
