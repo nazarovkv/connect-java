@@ -1,8 +1,10 @@
-package {{package}};
+{{>licenseInfo}}
+
+package {{invokerPackage}}.api.impl;
 
 import cd.connect.openapi.support.ApiClient;
 import cd.connect.openapi.support.ApiResponse;
-import {{invokerPackage}}.Configuration;
+import {{invokerPackage}}.api.{{classname}}Service;
 import cd.connect.openapi.support.Pair;
 import javax.ws.rs.BadRequestException;
 
@@ -20,7 +22,7 @@ import java.util.Map;
 
 {{>generatedAnnotation}}
 {{#operations}}
-public class {{classname}}ServiceImpl {
+public class {{classname}}ServiceImpl implements {{classname}}Service {
   private ApiClient {{localVariablePrefix}}apiClient;
 
   public {{classname}}ServiceImpl() {
@@ -60,7 +62,7 @@ public class {{classname}}ServiceImpl {
   {{#isDeprecated}}
   @Deprecated
   {{/isDeprecated}}
-  public {{#returnType}}{{{returnType}}} {{/returnType}}{{^returnType}}void {{/returnType}}{{operationId}}({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) {
+  public {{#returnType}}{{{returnType}}} {{/returnType}}{{^returnType}}Response {{/returnType}}{{operationId}}({{#allParams}}{{>serviceQueryParams}}{{>pathParams}}{{>serviceBodyParams}}{{>serviceFormParams}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) {
     {{#returnType}}
     return {{operationId}}WithHttpInfo({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}).getData();
     {{/returnType}}{{^returnType}}
