@@ -4,10 +4,10 @@
 	<artifactId>connect-openapi-jersey2</artifactId>
 	<packaging>jar</packaging>
 	<name>connect-openapi-jersey2</name>
-	<version>1.5-SNAPSHOT</version>
+	<version>3.1-SNAPSHOT</version>
 
 	<description>
-		jersey2 generator from openapi spec files.
+		jersey2 generator from openapi 3.x spec files.
 	</description>
 
 	<url>https://clearpointnz.github.io/connect/</url>
@@ -35,24 +35,30 @@
 	</scm>
 
 	<properties>
-		<swagger-codegen-version>2.3.1</swagger-codegen-version>
+		<openapi-codegen-version>3.0.5</openapi-codegen-version>
 	</properties>
 
 	<prerequisites>
-		<maven>3.3.9</maven>
+		<maven>3.5</maven>
 	</prerequisites>
 
 	<dependencies>
 		<dependency>
-			<groupId>io.swagger</groupId>
+			<groupId>io.swagger.codegen.v3</groupId>
 			<artifactId>swagger-codegen</artifactId>
-			<version>${swagger-codegen-version}</version>
+			<version>${openapi-codegen-version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>io.swagger</groupId>
+			<groupId>io.swagger.codegen.v3</groupId>
 			<artifactId>swagger-codegen-cli</artifactId>
-			<version>${swagger-codegen-version}</version>
+			<version>${openapi-codegen-version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.swagger.codegen.v3</groupId>
+			<artifactId>swagger-codegen-maven-plugin</artifactId>
+			<version>3.0.5</version>
 			<scope>provided</scope>
 		</dependency>
 	</dependencies>
