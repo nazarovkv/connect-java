@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>cd.connect.composites.java</groupId>
 		<artifactId>connect-composite-parent</artifactId>
-		<version>1.2-SNAPSHOT</version>
+		<version>1.2</version>
 		<relativePath>../connect-composite-parent</relativePath>
 	</parent>
 
