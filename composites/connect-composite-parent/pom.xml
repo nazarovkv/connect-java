@@ -4,7 +4,7 @@
 
   <groupId>cd.connect.composites.java</groupId>
   <artifactId>connect-composite-parent</artifactId>
-  <version>1.2-SNAPSHOT</version>
+  <version>1.2</version>
   <packaging>pom</packaging>
   <name>connect-composite-parent</name>
 
@@ -37,7 +37,7 @@
 		<connection>scm:git:git@github.com:clearpointnz/connect-java-composite.git</connection>
 		<developerConnection>scm:git:git@github.com:clearpointnz/connect-java-composite.git</developerConnection>
 		<url>git@github.com:clearpointnz/connect-java-composite.git</url>
-		<tag>HEAD</tag>
+		<tag>connect-composite-parent-1.2</tag>
 	</scm>
 
   <properties>
