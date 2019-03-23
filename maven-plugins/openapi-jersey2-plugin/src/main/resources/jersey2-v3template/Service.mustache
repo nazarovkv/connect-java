@@ -30,6 +30,7 @@ import java.util.Map;
 {{#hasConsumes}}@Consumes({ {{#consumes}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/consumes}} }){{/hasConsumes}}
 {{#hasProduces}}@Produces({ {{#produces}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/produces}} }){{/hasProduces}}
 {{#operations}}
+@Path("/{{baseName}}")
 public interface {{classname}}Service {
 
   {{#operation}}

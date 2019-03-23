@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>cd.connect.java</groupId>
+	<artifactId>connect-libraries-reactor</artifactId>
+	<version>1.1-SNAPSHOT</version>
+	<packaging>pom</packaging>
+	<name>connect-libraries-reactor</name>
+
+	<modules>
+		<module>
+			env-logging
+		</module>
+		<module>
+			env-property-headers
+		</module>
+		<module>
+			jackson
+		</module>
+		<module>
+			jetty-redis-session-manager
+		</module>
+		<module>
+			log4j
+		</module>
+		<module>
+			logging
+		</module>
+		<module>
+			opentracing-logging-wrapper
+		</module>
+		<module>
+			opentracing-servlet
+		</module>
+		<module>
+			prometheus-jersey-filter
+		</module>
+		<module>
+			runnable-jetty
+		</module>
+		<module>
+			servlet-spring
+		</module>
+		<module>
+			servlet-spring-jersey
+		</module>
+		<module>
+			spring-jersey-client
+		</module>
+		<module>
+			vault-initializer
+		</module>
+	</modules>
+</project>

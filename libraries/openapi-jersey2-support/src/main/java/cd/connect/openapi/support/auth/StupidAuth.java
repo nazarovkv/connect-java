@@ -2,15 +2,16 @@ package cd.connect.openapi.support.auth;
 
 import cd.connect.openapi.support.Pair;
 
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
-public class HttpBearerAuth implements Authentication {
-  private final String scheme;
+/**
+ * Use this when they don't want the prefix
+ */
+public class StupidAuth implements Authentication {
   private String bearerToken;
 
-  public HttpBearerAuth(String scheme) {
-    this.scheme = scheme;
+  public StupidAuth() {
   }
 
   /**
@@ -27,7 +28,7 @@ public class HttpBearerAuth implements Authentication {
    *
    * @param bearerToken The bearer token to send in the Authorization header
    */
-  public HttpBearerAuth setBearerToken(String bearerToken) {
+  public StupidAuth setBearerToken(String bearerToken) {
     this.bearerToken = bearerToken;
     return this;
   }
@@ -38,13 +39,6 @@ public class HttpBearerAuth implements Authentication {
       return;
     }
 
-    headerParams.put("Authorization", (scheme != null ? upperCaseBearer(scheme) + " " : "") + bearerToken);
-
-    return;
-  }
-
-
-  private static String upperCaseBearer(String scheme) {
-    return ("bearer".equalsIgnoreCase(scheme)) ? "Bearer" : scheme;
+    headerParams.put("Authorization", bearerToken);
   }
 }

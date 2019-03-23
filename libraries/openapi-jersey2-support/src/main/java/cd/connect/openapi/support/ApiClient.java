@@ -59,15 +59,21 @@ public class ApiClient {
   protected final Client httpClient;
   protected String tempFolderPath = null;
 
-  protected Map<String, Authentication> authentications;
+  protected Map<String, Authentication> authentications = new HashMap<>();
 
-  protected DateFormat dateFormat;
+  private String[] defaultAuth;
 
   public ApiClient(Client httpClient) {
+    this(httpClient, null);
+  }
+
+  public ApiClient(Client httpClient, String basePath) {
     this.httpClient = httpClient;
 
     // Set default User-Agent.
     setUserAgent("OpenAPI-Generator");
+
+    this.basePath = basePath;
 
     // Setup authentications (key: authentication name, value: authentication).
 //    authentications = new HashMap<String, Authentication>();
@@ -81,6 +87,10 @@ public class ApiClient {
 
   public void addAuthentication(String name, Authentication authentication) {
     this.authentications.put(name, authentication);
+
+    if (this.authentications.size() == 1) {
+      defaultAuth = this.authentications.keySet().toArray(new String[0]);
+    }
   }
 
   public Client getHttpClient() {
@@ -475,7 +485,11 @@ public class ApiClient {
    * @return The response body in type of string
    */
   public <T> ApiResponse<T> invokeAPI(String path, String method, List<Pair> queryParams, Object body, Map<String, String> headerParams, Map<String, Object> formParams, String accept, String contentType, String[] authNames, GenericType<T> returnType) {
-    updateParamsForAuth(authNames, queryParams, headerParams);
+    if ((authNames == null || authNames.length == 0) && defaultAuth != null) {
+      updateParamsForAuth(defaultAuth, queryParams, headerParams);
+    } else {
+      updateParamsForAuth(authNames, queryParams, headerParams);
+    }
 
     // Not using `.target(this.basePath).path(path)` below,
     // to support (constant) query string in `path`, e.g. "/posts?draft=1"

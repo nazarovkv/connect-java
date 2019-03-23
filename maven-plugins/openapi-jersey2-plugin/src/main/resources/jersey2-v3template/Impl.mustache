@@ -98,7 +98,7 @@ public class {{classname}}ServiceImpl implements {{classname}}Service {
       throw new BadRequestException("Missing the required parameter '{{paramName}}' when calling {{operationId}}");
     }
     {{/required}}{{/allParams}}
-    // create path and map variables
+    // create path and map variables {{{path}}}
     String {{localVariablePrefix}}localVarPath = "{{{path}}}"{{#pathParams}}
       .replaceAll("\\{" + "{{baseName}}" + "\\}", {{localVariablePrefix}}apiClient.escapeString({{{paramName}}}.toString())){{/pathParams}};
 
