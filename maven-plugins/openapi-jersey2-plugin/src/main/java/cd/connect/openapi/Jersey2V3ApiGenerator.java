@@ -100,6 +100,7 @@ public class Jersey2V3ApiGenerator extends AbstractJavaJAXRSServerCodegen implem
     modelTemplateFiles.put("model.mustache", ".java");
     apiTemplateFiles.put("Impl.mustache", ".java");
     apiTemplateFiles.put("Service.mustache", ".java");
+    apiTemplateFiles.put("ClientService.mustache", ".java");
 //    apiTemplateFiles.put("Configuration.mustache", ".java");
 
     // this is the name of the library and the date package we use
@@ -217,6 +218,9 @@ public class Jersey2V3ApiGenerator extends AbstractJavaJAXRSServerCodegen implem
     } else if (templateName.endsWith("Factory.mustache")) {
       ix = result.lastIndexOf(47);
       result = result.substring(0, ix) + "/factories" + result.substring(ix, result.length() - 5) + "ServiceFactory.java";
+    } else if (templateName.endsWith("ClientService.mustache")) {
+      ix = result.lastIndexOf(46);
+      result = result.substring(0, ix) + "ClientService.java";
     } else if (templateName.endsWith("Service.mustache")) {
       ix = result.lastIndexOf(46);
       result = result.substring(0, ix) + "Service.java";

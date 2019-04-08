@@ -59,28 +59,6 @@ public interface {{classname}}Service {
   @Deprecated
   {{/isDeprecated}}
   public {{#returnType}}{{{returnType}}} {{/returnType}}{{^returnType}}Response {{/returnType}}{{operationId}}({{#allParams}}{{>queryParams}}{{>pathParams}}{{>bodyParams}}{{>formParams}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
-
-  /**
-   * {{summary}}
-   * {{notes}}
-   {{#allParams}}
-   * @param {{paramName}} {{description}}{{#required}} (required){{/required}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}
-   {{/allParams}}
-   {{#returnType}}
-   * @return ApiResponse&lt;{{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/returnType}}&gt;
-   {{/returnType}}
-   {{#isDeprecated}}
-   * @deprecated
-   {{/isDeprecated}}
-   {{#externalDocs}}
-   * {{description}}
-   * @see <a href="{{url}}">{{summary}} Documentation</a>
-   {{/externalDocs}}
-   */
-  {{#isDeprecated}}
-  @Deprecated
-  {{/isDeprecated}}
-  public ApiResponse<{{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}Void{{/returnType}}> {{operationId}}WithHttpInfo({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
   {{/operation}}
 }
 {{/operations}}
