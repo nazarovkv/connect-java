@@ -44,34 +44,91 @@ public class {{classname}}ServiceImpl implements {{classname}}Service, {{classna
 
   {{#operation}}
   /**
-   * {{summary}}
-   * {{notes}}
-   {{#allParams}}
-   * @param {{paramName}} {{description}}{{#required}} (required){{/required}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}
-   {{/allParams}}
-   {{#returnType}}
-   * @return {{returnType}}
-   {{/returnType}}
-   {{#isDeprecated}}
-   * @deprecated
-   {{/isDeprecated}}
-   {{#externalDocs}}
-   * {{description}}
-   * @see <a href="{{url}}">{{summary}} Documentation</a>
-   {{/externalDocs}}
-   */
+  * {{summary}}
+  * {{notes}}
+  {{#allParams}}
+    * @param {{paramName}} {{description}}{{#required}} (required){{/required}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}
+  {{/allParams}}
+  {{#returnType}}
+    * @return {{returnType}}
+  {{/returnType}}
   {{#isDeprecated}}
-  @Deprecated
+    * @deprecated
+  {{/isDeprecated}}
+  {{#externalDocs}}
+    * {{description}}
+    * @see <a href="{{url}}">{{summary}} Documentation</a>
+  {{/externalDocs}}
+  */
+  {{#isDeprecated}}
+    @Deprecated
   {{/isDeprecated}}
   public {{#returnType}}{{{returnType}}} {{/returnType}}{{^returnType}}Response {{/returnType}}{{operationId}}({{#allParams}}{{>serviceQueryParams}}{{>pathParams}}{{>serviceBodyParams}}{{>serviceFormParams}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) {
-    {{#returnType}}
+  {{#returnType}}
     return {{operationId}}WithHttpInfo({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}).getData();
-    {{/returnType}}{{^returnType}}
+  {{/returnType}}{{^returnType}}
     {{operationId}}WithHttpInfo({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
-    {{/returnType}}
+  {{/returnType}}
   }
 
   /**
+  * {{summary}}
+  * {{notes}}
+  {{#allParams}}
+    * @param {{paramName}} {{description}}{{#required}} (required){{/required}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}
+  {{/allParams}}
+  {{#returnType}}
+    * @return {{returnType}}
+  {{/returnType}}
+  {{#isDeprecated}}
+    * @deprecated
+  {{/isDeprecated}}
+  {{#externalDocs}}
+    * {{description}}
+    * @see <a href="{{url}}">{{summary}} Documentation</a>
+  {{/externalDocs}}
+  */
+  {{#isDeprecated}}
+    @Deprecated
+  {{/isDeprecated}}
+  public {{#returnType}}{{{returnType}}} {{/returnType}}{{^returnType}}Response {{/returnType}}{{operationId}}({{#allParams}}{{>serviceQueryParams}}{{>pathParams}}{{>serviceBodyParams}}{{>serviceFormParams}}{{#hasMore}}, {{/hasMore}}{{/allParams}}, Map<String, String> extraHeaders) {
+  {{#returnType}}
+    return {{operationId}}WithHttpInfo({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}, extraHeaders).getData();
+  {{/returnType}}{{^returnType}}
+    {{operationId}}WithHttpInfo({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}, extraHeaders);
+  {{/returnType}}
+  }
+
+  /**
+  * {{summary}}
+  * {{notes}}
+  {{#allParams}}
+    * @param {{paramName}} {{description}}{{#required}} (required){{/required}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}
+  {{/allParams}}
+  {{#returnType}}
+    * @return ApiResponse&lt;{{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/returnType}}&gt;
+  {{/returnType}}
+  {{#isDeprecated}}
+    * @deprecated
+  {{/isDeprecated}}
+  {{#externalDocs}}
+    * {{description}}
+    * @see <a href="{{url}}">{{summary}} Documentation</a>
+  {{/externalDocs}}
+  */
+  {{#isDeprecated}}
+    @Deprecated
+  {{/isDeprecated}}
+  public ApiResponse<{{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}Void{{/returnType}}> {{operationId}}WithHttpInfo({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) {
+  {{#returnType}}
+      return {{operationId}}WithHttpInfo({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}, null);
+  {{/returnType}}{{^returnType}}
+    {{operationId}}WithHttpInfo({{#allParams}}{{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}, null);
+  {{/returnType}}
+
+  }
+
+    /**
    * {{summary}}
    * {{notes}}
    {{#allParams}}
@@ -91,7 +148,7 @@ public class {{classname}}ServiceImpl implements {{classname}}Service, {{classna
   {{#isDeprecated}}
   @Deprecated
   {{/isDeprecated}}
-  public ApiResponse<{{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}Void{{/returnType}}> {{operationId}}WithHttpInfo({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) {
+  public ApiResponse<{{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}Void{{/returnType}}> {{operationId}}WithHttpInfo({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}, Map<String, String> extraHeaders) {
     Object {{localVariablePrefix}}localVarPostBody = {{#bodyParam}}{{paramName}}{{/bodyParam}}{{^bodyParam}}new Object(){{/bodyParam}};
     {{#allParams}}{{#required}}
     // verify the required parameter '{{paramName}}' is set
@@ -107,6 +164,10 @@ public class {{classname}}ServiceImpl implements {{classname}}Service, {{classna
     {{javaUtilPrefix}}List<Pair> {{localVariablePrefix}}localVarQueryParams = new {{javaUtilPrefix}}ArrayList<Pair>();
     {{javaUtilPrefix}}Map<String, String> {{localVariablePrefix}}localVarHeaderParams = new {{javaUtilPrefix}}HashMap<String, String>();
     {{javaUtilPrefix}}Map<String, Object> {{localVariablePrefix}}localVarFormParams = new {{javaUtilPrefix}}HashMap<String, Object>();
+
+    if (extraHeaders != null) {
+      localVarHeaderParams.putAll(extraHeaders);
+    }
 
     {{#queryParams}}
     {{localVariablePrefix}}localVarQueryParams.addAll({{localVariablePrefix}}apiClient.parameterToPairs("{{#collectionFormat}}{{{collectionFormat}}}{{/collectionFormat}}", "{{baseName}}", {{paramName}}));

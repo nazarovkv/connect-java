@@ -67,6 +67,33 @@ import javax.ws.rs.*;
       * @param {{paramName}} {{description}}{{#required}} (required){{/required}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}
     {{/allParams}}
     {{#returnType}}
+      * @return {{returnType}}
+    {{/returnType}}
+    {{#isDeprecated}}
+      * @deprecated
+    {{/isDeprecated}}
+    {{#externalDocs}}
+      * {{description}}
+      * @see <a href="{{url}}">{{summary}} Documentation</a>
+    {{/externalDocs}}
+    */
+    @{{httpMethod}}{{#subresourceOperation}}
+      @Path("{{path}}"){{/subresourceOperation}}{{#hasConsumes}}
+      @Consumes({ {{#consumes}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/consumes}} }){{/hasConsumes}}{{#hasProduces}}
+      @Produces({ {{#produces}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/produces}} }){{/hasProduces}}
+    {{#isDeprecated}}
+      @Deprecated
+    {{/isDeprecated}}
+    public {{#returnType}}{{{returnType}}} {{/returnType}}{{^returnType}}Response {{/returnType}}{{operationId}}({{#allParams}}{{>queryParams}}{{>pathParams}}{{>bodyParams}}{{>formParams}}{{#hasMore}}, {{/hasMore}}{{/allParams}}, Map<String, String> extraHeaders);
+
+
+    /**
+    * {{summary}}
+    * {{notes}}
+    {{#allParams}}
+      * @param {{paramName}} {{description}}{{#required}} (required){{/required}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}
+    {{/allParams}}
+    {{#returnType}}
       * @return ApiResponse&lt;{{#returnType}}{{returnType}}{{/returnType}}{{^returnType}}Void{{/returnType}}&gt;
     {{/returnType}}
     {{#isDeprecated}}
