@@ -35,7 +35,7 @@
 	</scm>
 
 	<properties>
-		<openapi-codegen-version>3.0.5</openapi-codegen-version>
+		<openapi-codegen-version>3.0.7</openapi-codegen-version>
 	</properties>
 
 	<prerequisites>
@@ -58,7 +58,7 @@
 		<dependency>
 			<groupId>io.swagger.codegen.v3</groupId>
 			<artifactId>swagger-codegen-maven-plugin</artifactId>
-			<version>3.0.5</version>
+			<version>${openapi-codegen-version}</version>
 			<scope>provided</scope>
 		</dependency>
 	</dependencies>
@@ -68,7 +68,7 @@
 			<plugin>
 				<groupId>io.repaint.maven</groupId>
 				<artifactId>tiles-maven-plugin</artifactId>
-				<version>2.10</version>
+				<version>2.13</version>
 				<extensions>true</extensions>
 				<configuration>
 					<filtering>false</filtering>
@@ -81,7 +81,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-invoker-plugin</artifactId>
-				<version>2.0.0</version>
+				<version>3.2.0</version>
 				<configuration>
 					<projectsDirectory>src/it</projectsDirectory>
 					<cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
