@@ -118,11 +118,6 @@ public class Jersey2V3ApiGenerator extends AbstractJavaJAXRSServerCodegen implem
       }
     }
 
-    supportingFiles.add(new SupportingFile("Configuration.mustache",
-      sourceFolder + "/" + apiPackage().replace('.', '/') + "/impl",
-      "Configuration.java"));
-
-
     if ( additionalProperties.containsKey(CodegenConstants.IMPL_FOLDER) ) {
       implFolder = (String) additionalProperties.get(CodegenConstants.IMPL_FOLDER);
     }

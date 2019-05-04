@@ -1,15 +1,16 @@
 {{>licenseInfo}}
 
-package {{invokerPackage}}.api.impl;
+package {{package}}.impl;
 
 import cd.connect.openapi.support.ApiClient;
 import cd.connect.openapi.support.ApiResponse;
-import {{invokerPackage}}.api.{{classname}}Service;
-import {{invokerPackage}}.api.{{classname}}ClientService;
+import {{package}}.{{classname}}Service;
+import {{package}}.{{classname}}ClientService;
 import cd.connect.openapi.support.Pair;
 import javax.ws.rs.BadRequestException;
 
 import javax.ws.rs.core.GenericType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.*;
 
 {{#imports}}import {{import}};
@@ -26,10 +27,6 @@ import java.util.Map;
 {{#operations}}
 public class {{classname}}ServiceImpl implements {{classname}}Service, {{classname}}ClientService {
   private ApiClient {{localVariablePrefix}}apiClient;
-
-  public {{classname}}ServiceImpl() {
-    this(Configuration.getDefaultApiClient());
-  }
 
   public {{classname}}ServiceImpl(ApiClient apiClient) {
     this.{{localVariablePrefix}}apiClient = apiClient;
