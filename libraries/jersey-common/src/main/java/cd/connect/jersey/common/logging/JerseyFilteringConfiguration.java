@@ -1,6 +1,7 @@
 package cd.connect.jersey.common.logging;
 
 import cd.connect.app.config.ConfigKey;
+import cd.connect.app.config.DeclaredConfigResolver;
 import cd.connect.context.ConnectContext;
 import org.glassfish.jersey.logging.Constants;
 
@@ -39,6 +40,7 @@ public class JerseyFilteringConfiguration implements JerseyFiltering {
   protected String excludeEntirelyUris = "";
 
   public JerseyFilteringConfiguration() {
+    DeclaredConfigResolver.resolve(this);
     /*
      * we are default using Kubernetes and Prometheus, so we should ignore at least these by default.
      */
