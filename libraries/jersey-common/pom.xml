@@ -58,6 +58,27 @@
 		</dependency>
 
 		<dependency>
+			<groupId>cd.connect.common</groupId>
+			<artifactId>connect-app-lifecycle</artifactId>
+			<version>1.1</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>cd.connect.common</groupId>
+			<artifactId>connect-prometheus-jersey</artifactId>
+			<version>[2.2, 3)</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>cd.connect.composites.java</groupId>
+			<artifactId>connect-composite-prometheus</artifactId>
+			<version>1.1</version>
+			<scope>provided</scope>
+		</dependency>
+		
+		<dependency>
 			<groupId>cd.connect.composites.java</groupId>
 			<artifactId>connect-composite-test</artifactId>
 			<version>[1.1,2)</version>

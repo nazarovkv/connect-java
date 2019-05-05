@@ -6,10 +6,12 @@ import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.message.GZipEncoder;
 
 import javax.ws.rs.core.Configurable;
+import javax.ws.rs.core.Feature;
+import javax.ws.rs.core.FeatureContext;
 
 import static org.glassfish.jersey.servlet.ServletProperties.PROVIDER_WEB_APP;
 
-public class CommonConfiguration {
+public class CommonConfiguration implements Feature {
 
 	public static void basic(Configurable<? extends Configurable> config) {
 		config.property(CommonProperties.METAINF_SERVICES_LOOKUP_DISABLE, true);
@@ -24,4 +26,10 @@ public class CommonConfiguration {
 		config.register(JacksonContextProvider.class);
 		config.register(JerseyExceptionMapper.class);
 	}
+
+  @Override
+  public boolean configure(FeatureContext featureContext) {
+	  basic(featureContext);
+    return true;
+  }
 }
