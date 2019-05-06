@@ -12,8 +12,8 @@
      * {{enumDescription}}
      */
     {{/enumDescription}}
-    {{{name}}}({{{value}}}){{^-last}},
-    {{/-last}}{{#-last}};{{/-last}}
+    {{{name}}}({{{value}}}){{^@last}},
+    {{/@last}}{{#@last}};{{/@last}}
       {{/enumVars}}
     {{/allowableValues}}
 
