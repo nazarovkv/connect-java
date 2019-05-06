@@ -4,7 +4,7 @@
 
   <groupId>cd.connect.jersey</groupId>
 	<artifactId>jersey-common</artifactId>
-	<version>1.3</version>
+	<version>1.3-SNAPSHOT</version>
 	<name>jersey-common</name>
 
 	<description>
