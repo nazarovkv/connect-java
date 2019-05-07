@@ -10,6 +10,10 @@
 	<name>connect-libraries-reactor</name>
 
 	<modules>
+		<module>jersey-common</module>
+		<module>app-lifecycle</module>
+		<module>app-declare-config</module>
+		<module>openapi-jersey2-support</module>
 		<module>
 			env-logging
 		</module>

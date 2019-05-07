@@ -25,8 +25,9 @@
     <module>connect-composite-prometheus</module>
     <module>connect-composite-spring</module>
     <module>connect-composite-springweb</module>
-    <module>connect-composite-springwebapp</module>
     <module>connect-composite-test</module>
+    <module>connect-composite-tracing</module>
+    <module>connect-composite-restapp</module>
   </modules>
 
   <build>

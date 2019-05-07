@@ -5,6 +5,8 @@ import cd.connect.jersey.common.logging.JerseyFiltering;
 import org.glassfish.jersey.message.MessageUtils;
 
 import javax.annotation.Priority;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.ws.rs.ConstrainedTo;
 import javax.ws.rs.RuntimeType;
 import javax.ws.rs.container.ContainerRequestContext;
@@ -21,6 +23,7 @@ import java.io.OutputStream;
  */
 @ConstrainedTo(RuntimeType.SERVER)
 @Priority(Integer.MAX_VALUE)
+@Singleton
 @SuppressWarnings("ClassWithMultipleLoggers")
 public class FilteringServerLoggingFilter extends BaseFilteringLogger implements ContainerRequestFilter, ContainerResponseFilter {
 
@@ -28,6 +31,7 @@ public class FilteringServerLoggingFilter extends BaseFilteringLogger implements
 	 * Create a logging filter with custom logger and custom settings of entity
 	 * logging.
 	 */
+	@Inject
 	public FilteringServerLoggingFilter(JerseyFiltering jerseyFiltering) {
 		super(jerseyFiltering, LoggingFeature.Verbosity.PAYLOAD_ANY);
 	}
