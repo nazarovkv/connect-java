@@ -9,7 +9,7 @@
 	</parent>
 
   <artifactId>connect-composite-jersey-client</artifactId>
-  <version>1.3-SNAPSHOT</version>
+  <version>1.4-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>connect-composite-jersey-client</name>
 
