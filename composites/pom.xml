@@ -28,6 +28,7 @@
     <module>connect-composite-test</module>
     <module>connect-composite-tracing</module>
     <module>connect-composite-restapp</module>
+	  <module>connect-composite-jersey-grizzly</module>
   </modules>
 
   <build>

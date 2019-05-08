@@ -125,11 +125,17 @@
 		  <version>[1.2, 2)</version>
 	  </dependency>
 
-	  <dependency>
-		  <groupId>org.glassfish.jersey.containers</groupId>
-		  <artifactId>jersey-container-grizzly2-http</artifactId>
-		  <version>${jersey.version}</version>
-	  </dependency>
+    <dependency>
+      <groupId>cd.connect.jersey</groupId>
+      <artifactId>connect-jersey-grizzly</artifactId>
+      <version>1.1-SNAPSHOT</version>
+    </dependency>
+
+    <dependency>
+      <groupId>cd.connect.composites.java</groupId>
+      <artifactId>connect-composite-jersey-grizzly</artifactId>
+      <version>[1.1-SNAPSHOT,2)</version>
+    </dependency>
 
 	  <!-- runner and property loader -->
 	  <dependency>
