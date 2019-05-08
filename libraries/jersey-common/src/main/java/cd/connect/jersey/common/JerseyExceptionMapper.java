@@ -14,7 +14,12 @@ public class JerseyExceptionMapper implements ExceptionMapper<Exception> {
 	@Override
 	public Response toResponse(Exception exception) {
 		if (exception instanceof WebApplicationException) {
-			return ((WebApplicationException)exception).getResponse();
+      Response response = ((WebApplicationException) exception).getResponse();
+      if (response.getStatus() >= 500) { // special callout to all our 5xx in the house.
+        log.error("Failed jersey request", exception);
+      }
+
+      return response;
 		}
 		
 		log.error("Failed jersey request", exception);
