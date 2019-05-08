@@ -42,8 +42,8 @@
   </scm>
 
   <properties>
-    <version.io.opentracing-opentracing>0.33.0</version.io.opentracing-opentracing>
-    <version.jaeger>0.35.3</version.jaeger>
+    <version.io.opentracing-opentracing>0.31.0</version.io.opentracing-opentracing>
+    <version.jaeger>0.34.0</version.jaeger>
   </properties>
 
   <dependencies>

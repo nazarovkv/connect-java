@@ -22,7 +22,7 @@ public class TracingConfiguration implements Feature {
 
   @Override
   public boolean configure(FeatureContext ctx) {
-    GlobalTracer.registerIfAbsent(new LoggingSpanTracer(getTracer()));
+    GlobalTracer.register(new LoggingSpanTracer(getTracer()));
 
     // i don't like that these require the HttpServletRequest - we don't have one!
     ctx.register(ClientTracingFeature.class);
