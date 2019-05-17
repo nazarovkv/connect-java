@@ -227,6 +227,32 @@ public class {{classname}} {{#parent}}extends {{{parent}}} {{/parent}}{{#parcela
     return o.toString().replace("\n", "\n    ");
   }
 
+
+  public {{classname}} copy() {
+    {{classname}} copy = new {{classname}}();
+
+   {{#vars}}
+     {{#isListContainer}}
+       {{#isNotContainer}}
+    copy.{{setter}}(this.{{getter}}() == null ? null : new java.util.ArrayList<>(this.{{getter}}());
+       {{/isNotContainer}}
+       {{#isContainer}}
+    copy.{{setter}}(this.{{getter}}() == null ? null : this.{{getter}}().stream().map(t -> t.copy()).collect(java.util.stream.Collectors.toList()));
+       {{/isContainer}}
+     {{/isListContainer}}
+     {{^isListContainer}}
+       {{#isNotContainer}}
+    copy.{{setter}}(this.{{getter}}());
+       {{/isNotContainer}}
+       {{#isContainer}}
+    copy.{{setter}}(this.{{getter}}() == null ? null : this.{{getter}}().copy());
+       {{/isContainer}}
+     {{/isListContainer}}
+   {{/vars}}
+
+    return copy;
+  }
+
 {{#parcelableModel}}
 
   public void writeToParcel(Parcel out, int flags) {

@@ -14,6 +14,7 @@ import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.media.ComposedSchema;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -139,6 +140,40 @@ public class Jersey2V3ApiGenerator extends AbstractJavaJAXRSServerCodegen implem
     }
 
     return objs;
+  }
+
+  Map<String, CodegenModel> modelNames = new HashMap<>();
+
+
+  @Override
+  public Map<String, Object> postProcessModels(Map<String, Object> objs) {
+    List<Map<String, Object>> models = (List<Map<String, Object>>) objs.get("models");
+    models.stream().forEach(model -> {
+      CodegenModel m = (CodegenModel) model.get("model");
+      modelNames.put(m.classname, m);
+    });
+    return super.postProcessModels(objs);
+  }
+
+  @Override
+  public Map<String, Object> postProcessAllModels(Map<String, Object> processedModels) {
+//    modelNames.values().forEach(model -> {
+//      model.vars.forEach(v -> {
+//        v.vendorExtensions.put("localModel",
+//          !v.getIsPrimitiveType() && modelNames.get(stripList(v.datatypeWithEnum)) != null);
+//
+//      });
+//    });
+
+
+    return super.postProcessAllModels(processedModels);
+  }
+
+  private String stripList(String datatypeWithEnum) {
+    if (datatypeWithEnum.startsWith("List<")) {
+      return datatypeWithEnum.substring("List<".length(), datatypeWithEnum.length() -1);
+    }
+    return datatypeWithEnum;
   }
 
   @SuppressWarnings("unchecked")
