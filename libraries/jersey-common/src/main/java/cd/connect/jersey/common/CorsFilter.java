@@ -13,6 +13,7 @@ import javax.ws.rs.ext.Provider;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 // from https://stackoverflow.com/questions/28065963/how-to-handle-cors-using-jax-rs-with-jersey
 
@@ -20,18 +21,19 @@ import java.util.List;
 @PreMatching
 public class CorsFilter implements ContainerRequestFilter, ContainerResponseFilter {
   @ConfigKey("jersey.cors.headers")
-  List<String> allowedHeaders = Arrays.asList("Access-Control-Allow-Headers",
+  List<String> allowedHeaders = Arrays.asList(
     // Whatever other non-standard/safe headers (see list above)
     // you want the client to be able to send to the server,
     // put it in this list. And remove the ones you don't want.
-    "X-Requested-With, Authorization, Content-type, " +
-      "Accept-Version, Content-MD5, CSRF-Token");
-  private String headers[];
+    "X-Requested-With", "Authorization", "Content-type",
+      "Accept-Version", "Content-MD5", "CSRF-Token");
+
+  private String headers;
 
   public CorsFilter() {
     DeclaredConfigResolver.resolve(this);
 
-    headers = allowedHeaders.toArray(new String[0]);
+    headers = allowedHeaders.stream().collect(Collectors.joining(","));
   }
 
   /**
