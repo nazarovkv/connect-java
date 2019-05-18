@@ -33,7 +33,7 @@ public class CorsFilter implements ContainerRequestFilter, ContainerResponseFilt
   public CorsFilter() {
     DeclaredConfigResolver.resolve(this);
 
-    headers = allowedHeaders.stream().collect(Collectors.joining(","));
+    headers = String.join(",", allowedHeaders);
   }
 
   /**
