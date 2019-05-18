@@ -4,10 +4,10 @@
 	<artifactId>connect-openapi-jersey2</artifactId>
 	<packaging>jar</packaging>
 	<name>connect-openapi-jersey2</name>
-	<version>3.8-SNAPSHOT</version>
+	<version>4.1-SNAPSHOT</version>
 
 	<description>
-		jersey2 generator from openapi 3.x spec files.
+		jersey2 generator from openapi 3.x spec files. Changing to openapitools dependencies.
 	</description>
 
 	<url>https://clearpointnz.github.io/connect/</url>
@@ -35,7 +35,7 @@
 	</scm>
 
 	<properties>
-		<openapi-codegen-version>3.0.8</openapi-codegen-version>
+		<openapi-codegen-version>4.0.0</openapi-codegen-version>
 	</properties>
 
 	<prerequisites>
@@ -44,20 +44,20 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>io.swagger.codegen.v3</groupId>
-			<artifactId>swagger-codegen</artifactId>
+			<groupId>org.openapitools</groupId>
+			<artifactId>openapi-generator-core</artifactId>
 			<version>${openapi-codegen-version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>io.swagger.codegen.v3</groupId>
-			<artifactId>swagger-codegen-cli</artifactId>
+			<groupId>org.openapitools</groupId>
+			<artifactId>openapi-generator-cli</artifactId>
 			<version>${openapi-codegen-version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>io.swagger.codegen.v3</groupId>
-			<artifactId>swagger-codegen-maven-plugin</artifactId>
+			<groupId>org.openapitools</groupId>
+			<artifactId>openapi-generator-maven-plugin</artifactId>
 			<version>${openapi-codegen-version}</version>
 			<scope>provided</scope>
 		</dependency>
@@ -78,6 +78,7 @@
 				</configuration>
 			</plugin>
 
+			<!--
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-invoker-plugin</artifactId>
@@ -85,20 +86,10 @@
 				<configuration>
 					<projectsDirectory>src/it</projectsDirectory>
 					<cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
-					<!--<mavenOpts>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8000</mavenOpts>-->
-					<!--					<pomIncludes>
-											<pomInclude>*/pom.xml</pomInclude>
-										</pomIncludes> -->
-					<!-- <preBuildHookScript>setup</preBuildHookScript> -->
 					<postBuildHookScript>verify</postBuildHookScript>
 					<localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
 					<settingsFile>src/it/settings.xml</settingsFile>
 					<debug>true</debug>
-					<!--               <goals>
-													<goal>clean</goal>
-													<goal>verify</goal>
-												</goals>
-					 -->
 				</configuration>
 				<executions>
 					<execution>
@@ -110,6 +101,7 @@
 					</execution>
 				</executions>
 			</plugin>
+			-->
 		</plugins>
 	</build>
 

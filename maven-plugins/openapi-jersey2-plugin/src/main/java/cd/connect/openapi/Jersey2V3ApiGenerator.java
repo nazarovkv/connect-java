@@ -1,30 +1,24 @@
 package cd.connect.openapi;
 
 
-import io.swagger.codegen.v3.CliOption;
-import io.swagger.codegen.v3.CodegenArgument;
-import io.swagger.codegen.v3.CodegenConfig;
-import io.swagger.codegen.v3.CodegenConstants;
-import io.swagger.codegen.v3.CodegenModel;
-import io.swagger.codegen.v3.CodegenOperation;
-import io.swagger.codegen.v3.CodegenProperty;
-import io.swagger.codegen.v3.SupportingFile;
-import io.swagger.codegen.v3.generators.java.AbstractJavaJAXRSServerCodegen;
 import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.media.ComposedSchema;
+import org.openapitools.codegen.CliOption;
+import org.openapitools.codegen.CodegenConfig;
+import org.openapitools.codegen.CodegenConstants;
+import org.openapitools.codegen.CodegenModel;
+import org.openapitools.codegen.CodegenOperation;
+import org.openapitools.codegen.CodegenProperty;
+import org.openapitools.codegen.SupportingFile;
+import org.openapitools.codegen.languages.AbstractJavaJAXRSServerCodegen;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+
+import static org.openapitools.codegen.utils.StringUtils.camelize;
 
 public class Jersey2V3ApiGenerator extends AbstractJavaJAXRSServerCodegen implements CodegenConfig {
-  @Override
-  public String getDefaultTemplateDir() {
-    return null;
-  }
-
   private static final String LIBRARY_NAME = "jersey2-api";
   private static final String JERSEY2_TEMPLATE_FOLDER = "jersey2-v3template";
   private static final String SERVICE_ADDRESS = "serviceAddress";
@@ -57,15 +51,15 @@ public class Jersey2V3ApiGenerator extends AbstractJavaJAXRSServerCodegen implem
     embeddedTemplateDir = templateDir = JERSEY2_TEMPLATE_FOLDER;
   }
 
-  @Override
-  public List<CodegenArgument> getLanguageArguments() {
-    List<CodegenArgument> args = super.getLanguageArguments() == null ? new ArrayList<>() : new ArrayList<>(super.getLanguageArguments());
-    CodegenArgument e = new CodegenArgument();
-    e.setOption(CodegenConstants.API_TESTS_OPTION);
-    e.setValue("false");
-    args.add(e);
-    return args;
-  }
+//  @Override
+//  public List<CodegenArgument> getLanguageArguments() {
+//    List<CodegenArgument> args = super.getLanguageArguments() == null ? new ArrayList<>() : new ArrayList<>(super.getLanguageArguments());
+//    CodegenArgument e = new CodegenArgument();
+//    e.setOption(CodegenConstants.API_TESTS_OPTION);
+//    e.setValue("false");
+//    args.add(e);
+//    return args;
+//  }
 
   public String getName() {
     return LIBRARY_NAME;
@@ -125,7 +119,7 @@ public class Jersey2V3ApiGenerator extends AbstractJavaJAXRSServerCodegen implem
   }
 
   @Override
-  public Map<String, Object> postProcessOperations(Map<String, Object> objs) {
+  public Map<String, Object> postProcessOperationsWithModels(Map<String, Object> objs, List<Object> allModels) {
     List<CodegenOperation> codegenOperations = getCodegenOperations(objs);
 
     for (CodegenOperation op : codegenOperations) {
@@ -139,11 +133,10 @@ public class Jersey2V3ApiGenerator extends AbstractJavaJAXRSServerCodegen implem
       }
     }
 
-    return objs;
+    return super.postProcessOperationsWithModels(objs, allModels);
   }
 
   Map<String, CodegenModel> modelNames = new HashMap<>();
-
 
   @Override
   public Map<String, Object> postProcessModels(Map<String, Object> objs) {
@@ -154,28 +147,7 @@ public class Jersey2V3ApiGenerator extends AbstractJavaJAXRSServerCodegen implem
     });
     return super.postProcessModels(objs);
   }
-
-  @Override
-  public Map<String, Object> postProcessAllModels(Map<String, Object> processedModels) {
-//    modelNames.values().forEach(model -> {
-//      model.vars.forEach(v -> {
-//        v.vendorExtensions.put("localModel",
-//          !v.getIsPrimitiveType() && modelNames.get(stripList(v.datatypeWithEnum)) != null);
-//
-//      });
-//    });
-
-
-    return super.postProcessAllModels(processedModels);
-  }
-
-  private String stripList(String datatypeWithEnum) {
-    if (datatypeWithEnum.startsWith("List<")) {
-      return datatypeWithEnum.substring("List<".length(), datatypeWithEnum.length() -1);
-    }
-    return datatypeWithEnum;
-  }
-
+  
   @SuppressWarnings("unchecked")
   private List<CodegenOperation> getCodegenOperations(Map<String, Object> objs) {
     return (List<CodegenOperation>) getOperations(objs).get("operation");
@@ -258,6 +230,8 @@ public class Jersey2V3ApiGenerator extends AbstractJavaJAXRSServerCodegen implem
 
     return result;
   }
+
+
   public String toApiName(String name) {
     if (additionalProperties.get(SERVICE_NAME) != null) {
       return additionalProperties.get(SERVICE_NAME).toString();
@@ -266,7 +240,7 @@ public class Jersey2V3ApiGenerator extends AbstractJavaJAXRSServerCodegen implem
     if (name.length() == 0) {
       return "DefaultApi";
     }
-    
-    return initialCaps(name);
+
+    return name.substring(0,1).toUpperCase() + name.substring(1);
   }
 }
