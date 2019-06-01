@@ -44,6 +44,12 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>cd.connect.common</groupId>
+			<artifactId>connect-app-declare-config</artifactId>
+			<version>[1.1, 2)</version>
+			<scope>provided</scope>
+		</dependency>
 
 		<dependency>
 			<groupId>cd.connect.composites.java</groupId>
