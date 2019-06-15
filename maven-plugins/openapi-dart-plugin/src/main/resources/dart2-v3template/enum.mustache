@@ -13,6 +13,21 @@ class {{classname}} {
   static const {{classname}} {{{name}}} = const {{classname}}._internal({{{value}}});
     {{/enumVars}}
   {{/allowableValues}}
+
+  static {{classname}} fromJson(dynamic data) {
+    switch (data) {
+      {{#allowableValues}}
+        {{#enumVars}}
+      case {{{value}}}: return {{classname}}.{{{name}}};
+        {{/enumVars}}
+      {{/allowableValues}}
+      default: throw('Unknown enum value to decode: $data');
+    }
+  }
+
+  static dynamic toJson(Status status) {
+    return status.value;
+  }
 }
 
 class {{classname}}TypeTransformer {

@@ -23,7 +23,8 @@ class {{classname}} {
       {{name}} = DateTime.parse(json['{{baseName}}']);
   {{/isDateTime}}
   {{#isDate}}
-      {{name}} = DateTime.parse(json['{{baseName}}']);
+    var formatter = DateFormat('yyyy-MM-dd');
+    {{name}} = formatter.parseStrict(json['{{baseName}}']);
   {{/isDate}}
   {{^isDateTime}}
   {{^isDate}}
@@ -36,7 +37,7 @@ class {{classname}} {
       {{name}} = {{complexType}}.mapFromJson(json['{{baseName}}']);
       {{/isMapContainer}}
       {{^isMapContainer}}
-      {{name}} = new {{complexType}}.fromJson(json['{{baseName}}']);
+      {{name}} = {{complexType}}.fromJson(json['{{baseName}}']);
       {{/isMapContainer}}
       {{/isListContainer}}
     {{/complexType}}
@@ -49,6 +50,7 @@ class {{classname}} {
           {{name}} = (json['{{baseName}}'] as Map).cast<String, {{items.datatype}}>();
         {{/isMapContainer}}
         {{^isMapContainer}}
+          // here
           {{name}} = json['{{baseName}}'];
         {{/isMapContainer}}
       {{/isListContainer}}
@@ -73,7 +75,12 @@ class {{classname}} {
       {{/isDate}}
       {{^isDateTime}}
       {{^isDate}}
-      json['{{baseName}}'] = {{name}};
+      {{^isEnum}}
+        json['{{baseName}}'] = {{name}};
+      {{/isEnum}}
+      {{#isEnum}}
+        json['{{baseName}}'] = {{complexType}}TypeTransformer.encode({{name}});
+      {{/isEnum}}
       {{/isDate}}
       {{/isDateTime}}
     {{/vars}}
@@ -81,13 +88,13 @@ class {{classname}} {
   }
 
   static List<{{classname}}> listFromJson(List<dynamic> json) {
-    return json == null ? new List<{{classname}}>() : json.map((value) => new {{classname}}.fromJson(value)).toList();
+    return json == null ? List<{{classname}}>() : json.map((value) => {{classname}}.fromJson(value)).toList();
   }
 
   static Map<String, {{classname}}> mapFromJson(Map<String, dynamic> json) {
-    var map = new Map<String, {{classname}}>();
+    var map = Map<String, {{classname}}>();
     if (json != null && json.isNotEmpty) {
-      json.forEach((String key, dynamic value) => map[key] = new {{classname}}.fromJson(value));
+      json.forEach((String key, dynamic value) => map[key] = {{classname}}.fromJson(value));
     }
     return map;
   }
