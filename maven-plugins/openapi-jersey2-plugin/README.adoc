@@ -2,7 +2,129 @@
 
 Converts swagger/openapi yaml or json files into JAX-RS apis based on Jersey2
 
-= changes from v1.x
+== authors
+
+The current authors of this repository are:
+
+- _Irina Southwell (nee Капрельянц Ирина)_, Principal Engineer (https://www.linkedin.com/in/irina-southwell-9727a422/)
+- _Richard Vowles_, Software Developer (https://www.linkedin.com/in/richard-vowles-72035193/)
+
+== changes from v2.x (in v4.x)
+
+We have swapped to the `org.openapitools` project instead of the current Swagger one, and it has
+a raft of changes over the 3.x version. We are now also generating three different API sets in one codebase,
+and you need to chose which ones you generate or you will get no APIs, only models. 
+
+----
+<additionalProperties>
+  <additionalProperty>server-security</additionalProperty>
+</additionalProperties>
+----              
+
+You can chose from `client`, `server` and `server-security`. `client` generates client only APIs, but it does
+rely on `server` as that is a plain interface. You can generate `server` by itself. You can generate `server-security`
+by itself or all three. `server-security` is like `server` but you have an `@Context SecurityContext securityContext` at
+the end of the line. 
+
+You can also use bean validation:
+
+----
+<configOptions>
+  <configOption>
+    <name>useBeanValidation</name>
+    <value>true</value>
+  </configOption>
+</configOptions>
+---- 
+
+Which will enforce bean validation, but you do need to add a useful ConstraintExceptionHandler yourself.
+
+e.g.
+
+----
+import cd.connect.jackson.JacksonObjectProvider;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import java.util.HashMap;
+import java.util.Map;
+
+public class ConstraintExceptionHandler implements ExceptionMapper<ConstraintViolationException> {
+  private static final Logger log = LoggerFactory.getLogger(ConstraintExceptionHandler.class);
+
+  @Override
+  public Response toResponse(ConstraintViolationException exception) {
+    return Response.status(Response.Status.BAD_REQUEST)
+      .entity(prepareMessage(exception))
+      .type("application/json")
+      .build();
+  }
+
+  private String prepareMessage(ConstraintViolationException exception) {
+    Map<String, String> fields = new HashMap<>();
+    for (ConstraintViolation<?> cv : exception.getConstraintViolations()) {
+      fields.put(cv.getPropertyPath().toString(), cv.getMessage());
+    }
+
+    try {
+      return JacksonObjectProvider.mapper.writeValueAsString(fields);
+    } catch (JsonProcessingException e) {
+      log.error("totally failed", e);
+      return "{}";
+    }
+  }
+}
+----
+
+A full plugin declaration would look similar to this:
+
+----
+<plugin>
+<groupId>org.openapitools</groupId>
+<artifactId>openapi-generator-maven-plugin</artifactId>
+<version>4.0.0</version>
+<dependencies>
+  <dependency>
+    <groupId>cd.connect.openapi</groupId>
+    <artifactId>connect-openapi-jersey2</artifactId>
+    <version>4.4</version>
+  </dependency>
+</dependencies>
+<executions>
+  <execution>
+    <id>featurehub-api</id>
+    <goals>
+      <goal>generate</goal>
+    </goals>
+    <phase>generate-sources</phase>
+    <configuration>
+      <output>${project.basedir}/target/generated-sources/api</output>
+      <apiPackage>your.api</apiPackage>
+      <modelPackage>your.model</modelPackage>
+      <inputSpec>${project.basedir}/src/main/resources/your-api.yaml</inputSpec>
+      <language>jersey2-api</language>
+      <library>jersey2-api</library>
+      <additionalProperties>
+        <additionalProperty>server-security</additionalProperty>
+      </additionalProperties>
+      <configOptions>
+        <configOption>
+          <name>useBeanValidation</name>
+          <value>true</value>
+        </configOption>
+      </configOptions>
+    </configuration>
+  </execution>
+</executions>
+</plugin>
+----
+
+== changes from v1.x
 
 The 2.x line adds support for openapi v3 using the openapi v3 plugin and
 extensions for Jersey 2.26+.

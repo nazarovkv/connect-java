@@ -1,1 +1,1 @@
-{{#isBodyParam}}{{{dataType}}} {{paramName}}{{/isBodyParam}}
+{{#isBodyParam}}{{#useBeanValidation}}{{>beanValidation}}{{/useBeanValidation}}{{{dataType}}} {{paramName}}{{/isBodyParam}}

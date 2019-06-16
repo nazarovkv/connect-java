@@ -26,6 +26,11 @@ import javax.ws.rs.*;
   import java.util.Map;
 {{/fullJavaUtil}}
 
+{{#useBeanValidation}}
+  import javax.validation.Valid;
+  import javax.validation.constraints.NotNull;
+{{/useBeanValidation}}
+
 {{>generatedAnnotation}}
 {{#hasConsumes}}@Consumes({ {{#consumes}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/consumes}} }){{/hasConsumes}}
 {{#hasProduces}}@Produces({ {{#produces}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/produces}} }){{/hasProduces}}

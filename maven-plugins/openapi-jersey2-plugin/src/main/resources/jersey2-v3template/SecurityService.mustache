@@ -1,0 +1,79 @@
+package {{package}};
+
+import cd.connect.openapi.support.ApiClient;
+import cd.connect.openapi.support.ApiResponse;
+import cd.connect.openapi.support.Pair;
+import javax.ws.rs.BadRequestException;
+
+import javax.ws.rs.core.GenericType;
+import java.io.InputStream;
+
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.glassfish.jersey.media.multipart.FormDataParam;
+
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.*;
+
+{{#imports}}import {{import}};
+{{/imports}}
+
+{{^fullJavaUtil}}
+  import java.util.ArrayList;
+  import java.util.HashMap;
+  import java.util.List;
+  import java.util.Map;
+{{/fullJavaUtil}}
+
+{{#useBeanValidation}}
+  import javax.validation.Valid;
+  import javax.validation.constraints.NotNull;
+{{/useBeanValidation}}
+
+{{>generatedAnnotation}}
+{{#hasConsumes}}@Consumes({ {{#consumes}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/consumes}} }){{/hasConsumes}}
+{{#hasProduces}}@Produces({ {{#produces}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/produces}} }){{/hasProduces}}
+{{#operations}}
+  @Path("/{{baseName}}")
+  public interface {{classname}}SecuredService {
+
+  {{#operation}}
+    /**
+    * {{summary}}
+    * {{notes}}
+    {{#allParams}}
+      * @param {{paramName}} {{description}}{{#required}} (required){{/required}}{{^required}} (optional{{#defaultValue}}, default to {{.}}{{/defaultValue}}){{/required}}
+    {{/allParams}}
+    {{#returnType}}
+      * @return {{returnType}}
+    {{/returnType}}
+    {{#isDeprecated}}
+      * @deprecated
+    {{/isDeprecated}}
+    {{#externalDocs}}
+      * {{description}}
+      * @see <a href="{{url}}">{{summary}} Documentation</a>
+    {{/externalDocs}}
+    */
+    @io.swagger.annotations.ApiOperation(value = "{{{summary}}}", notes = "{{{notes}}}", response = {{{returnBaseType}}}.class{{#returnContainer}}, responseContainer = "{{{returnContainer}}}"{{/returnContainer}}{{#hasAuthMethods}}, authorizations = {
+    {{#authMethods}}@io.swagger.annotations.Authorization(value = "{{name}}"{{#isOAuth}}, scopes = {
+    {{#scopes}}@io.swagger.annotations.AuthorizationScope(scope = "{{scope}}", description = "{{description}}"){{#hasMore}},
+    {{/hasMore}}{{/scopes}}
+    }{{/isOAuth}}){{#hasMore}},
+    {{/hasMore}}{{/authMethods}}
+    }{{/hasAuthMethods}}, tags={ {{#vendorExtensions.x-tags}}"{{tag}}",{{/vendorExtensions.x-tags}} })
+    @io.swagger.annotations.ApiResponses(value = { {{#responses}}
+      @io.swagger.annotations.ApiResponse(code = {{{code}}}, message = "{{{message}}}", response = {{{baseType}}}.class{{#containerType}}, responseContainer = "{{{containerType}}}"{{/containerType}}){{#hasMore}},
+      {{/hasMore}}{{/responses}} })
+    @{{httpMethod}}{{#subresourceOperation}}
+    @Path("{{path}}"){{/subresourceOperation}}{{#hasConsumes}}
+    @Consumes({ {{#consumes}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/consumes}} }){{/hasConsumes}}{{#hasProduces}}
+    @Produces({ {{#produces}}"{{{mediaType}}}"{{#hasMore}}, {{/hasMore}}{{/produces}} }){{/hasProduces}}
+    {{#isDeprecated}}
+    @Deprecated
+    {{/isDeprecated}}
+    public {{#returnType}}{{{returnType}}} {{/returnType}}{{^returnType}}Response {{/returnType}}{{operationId}}({{#allParams}}{{>queryParams}}{{>pathParams}}{{>bodyParams}}{{>formParams}}{{#hasMore}}, {{/hasMore}}{{/allParams}}{{#hasParams}}, {{/hasParams}}@Context SecurityContext securityContext);
+  {{/operation}}
+  }
+{{/operations}}
