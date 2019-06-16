@@ -233,12 +233,12 @@ public class {{classname}} {{#parent}}extends {{{parent}}} {{/parent}}{{#parcela
 
    {{#vars}}
      {{#isListContainer}}
-       {{^isContainer}}
-    copy.{{setter}}(this.{{getter}}() == null ? null : new java.util.ArrayList<>(this.{{getter}}());
-       {{/isContainer}}
-       {{#isContainer}}
+       {{^complexType}}
+    copy.{{setter}}(this.{{getter}}() == null ? null : new java.util.ArrayList<>(this.{{getter}}()));
+       {{/complexType}}
+       {{#complexType}}
     copy.{{setter}}(this.{{getter}}() == null ? null : this.{{getter}}().stream().map(t -> t.copy()).collect(java.util.stream.Collectors.toList()));
-       {{/isContainer}}
+       {{/complexType}}
      {{/isListContainer}}
      {{^isListContainer}}
        {{^isContainer}}
