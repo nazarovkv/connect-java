@@ -44,7 +44,7 @@ class ApiClient {
           {{#model}}
         case '{{classname}}':
             {{#isEnum}}
-              return {{classname}}TypeTransformer().decode(value);
+              return {{classname}}TypeTransformer.fromJson(value);
             {{/isEnum}}
             {{^isEnum}}
           return {{classname}}.fromJson(value);

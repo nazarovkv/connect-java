@@ -19,6 +19,23 @@ class {{classname}} {
     if (json['{{baseName}}'] == null) {
       {{name}} = null;
     } else {
+  {{#allowableValues}}
+    {{#complexType}}
+    {{#isListContainer}}
+    {{name}} = {{complexType}}TypeTransformer.listFromJson(json['{{baseName}}']);
+    {{/isListContainer}}
+    {{^isListContainer}}
+      {{#isMapContainer}}
+    {{name}} = {{complexType}}TypeTransformer.mapFromJson(json['{{baseName}}']);
+      {{/isMapContainer}}
+      {{^isMapContainer}}
+    {{name}} = {{complexType}}TypeTransformer.fromJson(json['{{baseName}}']);
+      {{/isMapContainer}}
+    {{/isListContainer}}
+    {{/complexType}}
+
+  {{/allowableValues}}
+  {{^allowableValues}}
   {{#isDateTime}}
       {{name}} = DateTime.parse(json['{{baseName}}']);
   {{/isDateTime}}
@@ -30,7 +47,12 @@ class {{classname}} {
   {{^isDate}}
     {{#complexType}}
       {{#isListContainer}}
-      {{name}} = {{complexType}}.listFromJson(json['{{baseName}}']);
+        {{#items.allowableValues}}
+          {{name}} = {{complexType}}TypeTransformer.listFromJson(json['{{baseName}}']);
+        {{/items.allowableValues}}
+        {{^items.allowableValues}}
+          {{name}} = {{complexType}}.listFromJson(json['{{baseName}}']);
+        {{/items.allowableValues}}
       {{/isListContainer}}
       {{^isListContainer}}
       {{#isMapContainer}}
@@ -50,13 +72,13 @@ class {{classname}} {
           {{name}} = (json['{{baseName}}'] as Map).cast<String, {{items.datatype}}>();
         {{/isMapContainer}}
         {{^isMapContainer}}
-          // here
           {{name}} = json['{{baseName}}'];
         {{/isMapContainer}}
       {{/isListContainer}}
     {{/complexType}}
   {{/isDate}}
   {{/isDateTime}}
+  {{/allowableValues}}
     }
   {{/vars}}
   }
@@ -79,7 +101,7 @@ class {{classname}} {
         json['{{baseName}}'] = {{name}};
       {{/isEnum}}
       {{#isEnum}}
-        json['{{baseName}}'] = {{complexType}}TypeTransformer.encode({{name}});
+        json['{{baseName}}'] = {{complexType}}TypeTransformer.toJson({{name}});
       {{/isEnum}}
       {{/isDate}}
       {{/isDateTime}}

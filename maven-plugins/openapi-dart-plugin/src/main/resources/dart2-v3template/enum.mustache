@@ -1,49 +1,40 @@
 
-class {{classname}} {
-  /// The underlying value of this enum member.
-  final {{dataType}} value;
-
-  const {{classname}}._internal(this.value);
-
+enum {{classname}} {
   {{#allowableValues}}
-    {{#enumVars}}
-      {{#description}}
-  /// {{description}}
-      {{/description}}
-  static const {{classname}} {{{name}}} = const {{classname}}._internal({{{value}}});
-    {{/enumVars}}
+    {{#enumVars}}{{{name}}}{{^-last}}, {{/-last}}{{/enumVars}}
   {{/allowableValues}}
-
-  static {{classname}} fromJson(dynamic data) {
-    switch (data) {
-      {{#allowableValues}}
-        {{#enumVars}}
-      case {{{value}}}: return {{classname}}.{{{name}}};
-        {{/enumVars}}
-      {{/allowableValues}}
-      default: throw('Unknown enum value to decode: $data');
-    }
-  }
-
-  static dynamic toJson({{classname}} data) {
-    return data.value;
-  }
 }
 
 class {{classname}}TypeTransformer {
+  static Map<String, {{classname}}> fromJsonMap = {  {{#allowableValues}}
+  {{#enumVars}}"{{{name}}}":{{classname}}.{{{name}}}{{^-last}}, {{/-last}}{{/enumVars}}
+{{/allowableValues}} };
+  static Map<{{classname}}, String> toJsonMap = {  {{#allowableValues}}
+  {{#enumVars}}{{classname}}.{{{name}}}:"{{{name}}}"{{^-last}}, {{/-last}}{{/enumVars}}
+{{/allowableValues}} };
 
-  dynamic encode({{classname}} data) {
-    return data.value;
+  static {{classname}} fromJson(dynamic data) {
+    var found = fromJsonMap[data];
+    if (found == null) {
+      throw('Unknown enum value to decode: $data');
+    }
+    return found;
   }
 
-  {{classname}} decode(dynamic data) {
-    switch (data) {
-      {{#allowableValues}}
-        {{#enumVars}}
-      case {{{value}}}: return {{classname}}.{{{name}}};
-        {{/enumVars}}
-      {{/allowableValues}}
-      default: throw('Unknown enum value to decode: $data');
+  static dynamic toJson({{classname}} data) {
+    return toJsonMap[data];
+  }
+
+  static List<{{classname}}> listFromJson(List<dynamic> json) {
+    return json == null ? List<{{classname}}>() : json.map((value) => fromJson(value)).toList();
+  }
+
+  static Map<String, {{classname}}> mapFromJson(Map<String, dynamic> json) {
+    var map = Map<String, {{classname}}>();
+    if (json != null && json.isNotEmpty) {
+      json.forEach((String key, dynamic value) => map[key] = fromJson(value));
     }
+    return map;
   }
 }
+
