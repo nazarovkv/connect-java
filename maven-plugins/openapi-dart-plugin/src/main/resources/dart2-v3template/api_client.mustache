@@ -18,15 +18,23 @@ class ApiClient {
   final _regList = RegExp(r'^List<(.*)>$');
   final _regMap = RegExp(r'^Map<String,(.*)>$');
 
-  ApiClient({this.basePath = "{{{basePath}}}"}) {
-    // Setup authentications (key: authentication name, value: authentication).{{#authMethods}}{{#isBasic}}
-    _authentications['{{name}}'] = HttpBasicAuth();{{/isBasic}}{{#isApiKey}}
-    _authentications['{{name}}'] = ApiKeyAuth({{#isKeyInHeader}}"header"{{/isKeyInHeader}}{{^isKeyInHeader}}"query"{{/isKeyInHeader}}, "{{keyParamName}}");{{/isApiKey}}{{#isOAuth}}
-    _authentications['{{name}}'] = OAuth();{{/isOAuth}}{{/authMethods}}
+  ApiClient({this.basePath = "{{{basePath}}}"});
+
+  void setDefaultHeader(String key, String value) {
+    if (value == null) {
+      _defaultHeaderMap.remove(key);
+    } else {
+      _defaultHeaderMap[key] = value;
+    }
   }
 
-  void addDefaultHeader(String key, String value) {
-     _defaultHeaderMap[key] = value;
+  // ensure you set the Auth before calling an API that requires that type
+  void setAuthentication(String key, Authentication auth) {
+    if (auth == null) {
+      _authentications.remove(key);
+    } else {
+      _authentications[key] = auth;
+    }
   }
 
   dynamic _deserialize(dynamic value, String targetType) {
