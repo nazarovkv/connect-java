@@ -295,8 +295,7 @@ public class ApiClient {
 
   /**
    * Select the Accept header's value from the given accepts array:
-   *   if JSON exists in the given array, use it;
-   *   otherwise use all of them (joining into a string)
+   *   Use all of headers (joining into a string)
    *
    * @param accepts The accepts array to select from
    * @return The Accept header to use. If the given array is empty,
@@ -305,11 +304,6 @@ public class ApiClient {
   public String selectHeaderAccept(String[] accepts) {
     if (accepts.length == 0) {
       return null;
-    }
-    for (String accept : accepts) {
-      if (isJsonMime(accept)) {
-        return accept;
-      }
     }
     return String.join(",", accepts);
   }
