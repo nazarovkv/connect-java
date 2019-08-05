@@ -34,18 +34,22 @@ public class BabysaurMojo extends AbstractMojo {
 	@Parameter(name = "fullImageName", required = true)
 	private String fullImageName;
 
+	@Parameter(name = "serviceName", required = false)
+	private String serviceName;
+
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		ObjectMapper om = new ObjectMapper();
 
 		try {
 		  projectBuildDir.mkdirs();
-		  
+
 			FileWriter fw = new FileWriter(new File(projectBuildDir, MANIFEST_NAME));
 			ArtifactManifest am = new ArtifactManifest();
 
 			am.baseImageName = baseImageName;
 			am.fullImageName = fullImageName;
+			am.module = serviceName == null ? project.getName() : serviceName;
 
 			fw.write(om.writeValueAsString(am));
 			fw.flush();
