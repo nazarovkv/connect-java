@@ -50,6 +50,10 @@
 							<inputManifestFile>target/connect-manifest.json</inputManifestFile>
 							<outputYamlManifestFile>src/main/resources/manifest.yaml</outputYamlManifestFile>
 							<outputJsonManifestFile>src/main/resources/manifest.json</outputJsonManifestFile>
+							<pullRequest>My PR</pullRequest>
+							<sha>12345</sha>
+							<originalSha>789abdc</originalSha>
+							<branch>monsters</branch>
 						</configuration>
 					</execution>
 				</executions>
