@@ -1,0 +1,5 @@
+{
+	"baseImageName": "module-python1",
+	"fullImageName": "blah/python1-2:7.0",
+	"module": "python1"
+}

@@ -1,0 +1,7 @@
+[
+	{
+		"baseImageName": "module-golang1",
+		"fullImageName": "blah/golang1-2:2.0",
+		"module": "golang1"
+	}
+]

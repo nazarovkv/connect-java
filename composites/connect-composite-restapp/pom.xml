@@ -128,7 +128,7 @@
     <dependency>
       <groupId>cd.connect.jersey</groupId>
       <artifactId>connect-jersey-grizzly</artifactId>
-      <version>1.1-SNAPSHOT</version>
+      <version>[1.1,2)</version>
     </dependency>
 
     <dependency>

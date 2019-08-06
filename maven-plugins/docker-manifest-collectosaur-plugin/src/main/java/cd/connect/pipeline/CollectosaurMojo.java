@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
  * (where mergeSha is the sha returned from the repository when something is merged)
  */
 @Mojo(name = "collectosaur",
-	defaultPhase = LifecyclePhase.COMPILE,
+	defaultPhase = LifecyclePhase.PACKAGE,
 	requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME, threadSafe = true)
 public class CollectosaurMojo extends AbstractMojo {
 	private static final String COLLECTOSAUR_MANIFEST = "collectosaurManifest";
@@ -53,23 +53,23 @@ public class CollectosaurMojo extends AbstractMojo {
 	private String outputYamlManifestFile;
 
 	// where we will write the manifest file
-	@Parameter(name = "outputJsonManifestFile")
+	@Parameter(name = "outputJsonManifestFile", required = true)
 	private String outputJsonManifestFile;
 
 	// where we are looking for artifacts
-	@Parameter(name = "dockerRegistry", required = true)
+	@Parameter(name = "dockerRegistry", required = false)
 	private String dockerRegistry;
 
 	// to access the registry
-	@Parameter(name = "dockerRegistryBearerToken", required = true)
+	@Parameter(name = "dockerRegistryBearerToken", required = false)
 	private String dockerRegistryBearerToken;
 
 	// this is the name of this deployment container
-	@Parameter(name = "deploymentContainerName", required = true)
+	@Parameter(name = "deploymentContainerName", required = false)
 	private String deploymentContainerName;
 
 	// so we can find a successful one. This is used by the Retagosaur as well (to retag on success)
-	@Parameter(name = "retagOnSuccessSuffix", required = true)
+	@Parameter(name = "retagOnSuccessSuffix", required = false)
 	private String retagOnSuccessSuffix;
 
 	@Parameter(name = "sha")
@@ -85,14 +85,18 @@ public class CollectosaurMojo extends AbstractMojo {
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		if (!dockerRegistry.startsWith("https://")) {
-			dockerRegistry = "https://" + dockerRegistry;
-		}
+		List<ArtifactManifest> manifestList = new ArrayList<>();
 
-		DockerUtils dockerUtils = new DockerUtils(dockerRegistry, dockerRegistryBearerToken);
-		// first we check in the registry and see if there is a tagged previous successful build.
-		// if there isn't - that is ok, we assume this is the very first one.
-		List<ArtifactManifest> manifestList = dockerUtils.getLatestArtifactManifest(deploymentContainerName, retagOnSuccessSuffix);
+		if (dockerRegistry != null && dockerRegistryBearerToken != null) {
+			if (!dockerRegistry.startsWith("https://")) {
+				dockerRegistry = "https://" + dockerRegistry;
+			}
+
+			DockerUtils dockerUtils = new DockerUtils(dockerRegistry, dockerRegistryBearerToken);
+			// first we check in the registry and see if there is a tagged previous successful build.
+			// if there isn't - that is ok, we assume this is the very first one.
+			manifestList = dockerUtils.getLatestArtifactManifest(deploymentContainerName, retagOnSuccessSuffix);
+		}
 
 		List<ArtifactManifest> inputManifests = null;
 
@@ -104,7 +108,7 @@ public class CollectosaurMojo extends AbstractMojo {
 		}
 
 		List<ArtifactManifest> finalManifest;
-		if (manifestList != null) {
+		if (manifestList != null && manifestList.size() > 0) {
 			getLog().info("Merging with previous green build.");
 			finalManifest = mergeManifests(manifestList, inputManifests);
 		} else {
@@ -125,7 +129,7 @@ public class CollectosaurMojo extends AbstractMojo {
 
 		writeSystemProperties(newManifest);
 
-		writeJsonFile(newManifest);
+		writeJsonFile();
 		writeYamlFile(newManifest);
 	}
 
@@ -133,10 +137,21 @@ public class CollectosaurMojo extends AbstractMojo {
 	private void writeYamlFile(DockerManifest newManifest) throws MojoFailureException {
 		StringBuilder sb = new StringBuilder();
 
-		newManifest.manifest.forEach(m -> {
+		for (ArtifactManifest m : newManifest.manifest) {
 			String[] parts = m.fullImageName.split(":");
+			if (parts.length != 2) {
+				getLog().error("Image " + m.fullImageName + " is not valid, it has no tag!");
+				throw new MojoFailureException("Invalid image name " + m.fullImageName);
+			}
 			sb.append(String.format("%s:\n  image:\n    prefix: '%s'\n    tag: '%s'\n", m.module, parts[0], parts[1]));
-		});
+		}
+
+		// ensure the folders exist
+		File oFile = new File(outputYamlManifestFile);
+
+		if (!oFile.getParentFile().exists()) {
+			oFile.getParentFile().mkdirs();
+		}
 
 		try (FileWriter fw = new FileWriter(outputYamlManifestFile)) {
 			IOUtils.write(sb.toString(), fw);
@@ -145,8 +160,15 @@ public class CollectosaurMojo extends AbstractMojo {
 		}
 	}
 
-	private void writeJsonFile(DockerManifest newManifest) throws MojoFailureException {
+	private void writeJsonFile() throws MojoFailureException {
 		if (outputJsonManifestFile != null) {
+
+			// ensure the folders exist
+			File oFile = new File(outputJsonManifestFile);
+
+			if (!oFile.getParentFile().exists()) {
+				oFile.getParentFile().mkdirs();
+			}
 
 			try (FileWriter fw = new FileWriter(outputJsonManifestFile)) {
 				IOUtils.write(System.getProperty(COLLECTOSAUR_MANIFEST), fw);
@@ -157,7 +179,6 @@ public class CollectosaurMojo extends AbstractMojo {
 	}
 
 	private void writeSystemProperties(DockerManifest newManifest) throws MojoFailureException {
-
 		try {
 			System.setProperty(COLLECTOSAUR_MANIFEST, mapper.writeValueAsString(newManifest));
 		} catch (JsonProcessingException e) {
@@ -165,7 +186,10 @@ public class CollectosaurMojo extends AbstractMojo {
 		}
 
 		System.setProperty(COLLECTOSAUR_BRANCH, branch == null ? "master" : branch);
-		System.setProperty(COLLECTOSAUR_SHA, sha);
+
+		if (sha != null) {
+			System.setProperty(COLLECTOSAUR_SHA, sha);
+		}
 	}
 
 

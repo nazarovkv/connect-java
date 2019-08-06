@@ -6,7 +6,7 @@
 	<artifactId>module-1</artifactId>
 	<version>1.1-SNAPSHOT</version>
 	<name>module-1</name>
-	
+
 	<build>
 		<plugins>
 			<plugin>
@@ -22,7 +22,7 @@
 						</goals>
 						<configuration>
 							<baseImageName>${project.artifactId}</baseImageName>
-							<fullImageName>blah/${project.artifactId}</fullImageName>
+							<fullImageName>blah/${project.artifactId}:1.0</fullImageName>
 						</configuration>
 					</execution>
 				</executions>
