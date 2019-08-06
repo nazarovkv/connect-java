@@ -26,6 +26,31 @@
 						<goals>
 							<goal>mamasaur</goal>
 						</goals>
+						<configuration>
+							<additionalManifests>
+								<additionalManifest>extra1.json</additionalManifest>
+								<additionalManifest>extra2.json</additionalManifest>
+							</additionalManifests>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>cd.connect.pipeline</groupId>
+				<artifactId>docker-manifest-collectosaur-plugin</artifactId>
+				<version>@project.version@</version>
+				<executions>
+					<execution>
+						<id>collect</id>
+						<phase>compile</phase>
+						<goals>
+							<goal>collectosaur</goal>
+						</goals>
+						<configuration>
+							<inputManifestFile>target/connect-manifest.json</inputManifestFile>
+							<outputYamlManifestFile>src/main/resources/manifest.yaml</outputYamlManifestFile>
+							<outputJsonManifestFile>src/main/resources/manifest.json</outputJsonManifestFile>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>

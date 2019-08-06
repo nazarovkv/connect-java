@@ -1,6 +1,9 @@
 package cd.connect.pipeline;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.plugin.AbstractMojo;
@@ -16,11 +19,10 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * This is designed to be run in a reactor
@@ -41,6 +43,9 @@ public class MamasaurMojo extends AbstractMojo {
 	@Parameter(defaultValue = "${project.directory}")
 	private File projectDir;
 
+	@Parameter(name = "additionalManifests", readonly = true)
+	private List<File> additionalManifests;
+
 	private ObjectMapper om = new ObjectMapper();
 
 	private MojoFailureException mfe = null;
@@ -55,6 +60,10 @@ public class MamasaurMojo extends AbstractMojo {
 
 		walkModels(projectDir, project.getModel(), manifests);
 
+		if (additionalManifests != null) {
+			walkAdditionalInputs(manifests);
+		}
+
 		File manifestFile = new File(projectBuildDir, BabysaurMojo.MANIFEST_NAME);
 
 		projectBuildDir.mkdirs();
@@ -63,6 +72,31 @@ public class MamasaurMojo extends AbstractMojo {
 			om.writeValue(manifestFile, manifests);
 		} catch (IOException e) {
 			throw new MojoFailureException("unable to write manifest file for reactor", e);
+		}
+	}
+
+	private final static TypeReference<List<ArtifactManifest>> manifestType = new  TypeReference<List<ArtifactManifest>>(){};
+
+	private void walkAdditionalInputs(List<ArtifactManifest> manifests) throws MojoFailureException {
+		for(File extraInput : additionalManifests) {
+			if (extraInput.exists()) {
+				try {
+					String val = FileUtils.readFileToString(extraInput, Charset.defaultCharset());
+					if ( val.startsWith("[")) { // array of manifests
+						getLog().info("Adding list of manifests from " + extraInput.getPath());
+						manifests.addAll(om.readValue(val, manifestType));
+					} else if (val.startsWith("{")) {
+						getLog().info("Adding manifest from " + extraInput.getPath());
+						manifests.add(om.readValue(val, ArtifactManifest.class));
+					}
+				} catch (IOException e) {
+					String err = String.format("Unable to read file %s", extraInput.getAbsolutePath());
+					getLog().error(err);
+					throw new MojoFailureException(err);
+				}
+			} else {
+				getLog().info(String.format("File %s does not exist, ignoring", extraInput.getAbsolutePath()));
+			}
 		}
 	}
 
