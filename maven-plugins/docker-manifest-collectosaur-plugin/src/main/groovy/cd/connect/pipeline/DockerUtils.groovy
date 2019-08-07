@@ -35,7 +35,7 @@ class DockerUtils {
 
 		def tags = new JsonSlurper().parseText(body)['tags']
 
-		println("found tags $tags")
+//		println("found tags $tags")
 
 		//filter for tags that are in the correct format of timestamp.build.project-env.cluster.deploy.timestamp
 		//e.g 1540501501119.7.ci.nonprod.deploy.1540502359372
@@ -45,10 +45,10 @@ class DockerUtils {
 		filteredTags = filteredTags.reverse()
 
 		if (filteredTags) {
-			println "FILTER RETURNED LATEST " + filteredTags[0].toString()
+//			println "FILTER RETURNED LATEST " + filteredTags[0].toString()
 			return filteredTags[0]
 		} else {
-			println "no matching tags"
+//			println "no matching tags"
 			return null
 		}
 	}
@@ -98,7 +98,7 @@ class DockerUtils {
 			def configSha = dockerManifest.config.digest
 
 			registryReleaseManifestApi = "${dockerRegistryBase}/${imageName}/blobs/${configSha}"
-			println "Config ManifestAPI URL found: " + registryReleaseManifestApi
+//			println "Config ManifestAPI URL found: " + registryReleaseManifestApi
 			dockerManifestRequest = new URL(registryReleaseManifestApi).openConnection()  as HttpURLConnection
 			dockerManifestRequest.setRequestProperty("Authorization", "Bearer $dockerRegistryBearerToken")
 			dockerManifestRequest.setRequestProperty("Accept", "application/json")
