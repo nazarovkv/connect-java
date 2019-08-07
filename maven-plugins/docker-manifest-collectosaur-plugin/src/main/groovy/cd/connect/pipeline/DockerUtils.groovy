@@ -4,6 +4,8 @@ package cd.connect.pipeline
 import com.fasterxml.jackson.databind.ObjectMapper
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
+import groovy.transform.CompileStatic
+import org.apache.tools.ant.taskdefs.condition.Http
 
 class DockerUtils {
 	private final String dockerRegistryBase;
@@ -16,33 +18,19 @@ class DockerUtils {
 		this.dockerRegistryBearerToken = dockerRegistryBearerToken
 	}
 
+	//filter for tags that are in the correct format of timestamp.build.project-env.cluster.deploy.timestamp
+	//e.g 1540501501119.7.ci.nonprod.deploy.1540502359372
+
 	String latestReleaseTag(String imageName, String targetEnv) {
+		def filteredTags = null
+
 		// Return the latest ReleaseTag which was produced by submit-queue
-		def registryReleaseTagsApi = "${dockerRegistryBase}/${imageName}/tags/list?n=999"
-//		println "Searching " + registryReleaseTagsApi + " for latest release tag ${targetEnv}"
-
-		def tagsRequest = new URL(registryReleaseTagsApi).openConnection() as HttpURLConnection
-		tagsRequest.setRequestProperty("Authorization", "Bearer " + dockerRegistryBearerToken)
-		tagsRequest.setRequestProperty("Accept", "application/json")
-		tagsRequest.connect()
-
-		String body = tagsRequest.content.text
-//		println("Body is ${body} - response code is ${tagsRequest.responseCode}")
-
-		if (body == null || tagsRequest.responseCode != 200) {
-			return null
+		get("${dockerRegistryBase}/${imageName}/tags/list?n=999", ["Accept": "application/json"]) { body, code ->
+			def tags = new JsonSlurper().parseText(body)['tags']
+			filteredTags = tags.findAll { it ==~ /(\d+)\.(\d+)\.${targetEnv}\.(?=\S*['-])([a-zA-Z'-]+).(\w+)\.(\d+)/ }
+			filteredTags.sort()
+			filteredTags = filteredTags.reverse()
 		}
-
-		def tags = new JsonSlurper().parseText(body)['tags']
-
-//		println("found tags $tags")
-
-		//filter for tags that are in the correct format of timestamp.build.project-env.cluster.deploy.timestamp
-		//e.g 1540501501119.7.ci.nonprod.deploy.1540502359372
-
-		def filteredTags = tags.findAll { it ==~ /(\d+)\.(\d+)\.${targetEnv}\.(?=\S*['-])([a-zA-Z'-]+).(\w+)\.(\d+)/ }
-		filteredTags.sort()
-		filteredTags = filteredTags.reverse()
 
 		if (filteredTags) {
 //			println "FILTER RETURNED LATEST " + filteredTags[0].toString()
@@ -67,50 +55,116 @@ class DockerUtils {
 		if (tag != null) {
 			DockerManifest manifest = latestReleaseManifest(imageName, tag)
 			if (manifest) {
-				 return manifest.manifest
+				return manifest.manifest
 			}
 		}
 
 		return []
 	}
 
+	interface GetResult {
+		void result(String data, int code);
+	}
+
+	@CompileStatic
+	void get(String url, Map<String, String> headers, GetResult result) {
+		HttpURLConnection conn = new URL(url).openConnection() as HttpURLConnection
+		headers.each { String key, String value ->
+			conn.setRequestProperty(key, value)
+		}
+
+		if (!headers['Authorization']) {
+			conn.setRequestProperty('Authorization', "Bearer $dockerRegistryBearerToken")
+		}
+
+		conn.connect()
+
+		if (conn.responseCode != 200) {
+			throw new RuntimeException("Failed get ${conn.responseCode} : ${conn.inputStream.text}")
+		}
+
+		result.result(conn.inputStream.text, conn.responseCode)
+	}
+
+	void put(String url, Map<String, String> headers, String data) {
+		HttpURLConnection conn = new URL(url).openConnection() as HttpURLConnection
+		headers.each { String key, String value ->
+			conn.setRequestProperty(key, value)
+		}
+		conn.setRequestMethod('PUT')
+
+
+		if (!headers['Authorization']) {
+			conn.setRequestProperty('Authorization', "Bearer $dockerRegistryBearerToken")
+		}
+
+		conn.connect()
+		conn.outputStream.write(data.bytes)
+		conn.outputStream.flush()
+		conn.outputStream.close()
+
+		if (conn.responseCode != 200) {
+			throw new RuntimeException("Failed put ${url} with data ${data} - ${conn.inputStream.text}")
+		}
+	}
+
 	DockerManifest latestReleaseManifest(String imageName, String latestReleaseTagVersion) {
 		def json = new JsonSlurper()
-		def registryReleaseManifestApi = "${dockerRegistryBase}/${imageName}/manifests/${latestReleaseTagVersion}"
-//		println "ManifestAPI URL found: " + registryReleaseManifestApi
-		def dockerManifestRequest = new URL(registryReleaseManifestApi).openConnection()  as HttpURLConnection
-		dockerManifestRequest.setRequestProperty("Authorization", "Bearer $dockerRegistryBearerToken")
-		dockerManifestRequest.setRequestProperty("Accept", "application/vnd.docker.distribution.manifest.v2+json")
-		dockerManifestRequest.connect()
-//		println("response code is ${dockerManifestRequest.responseCode}")
-		def dockerManifestResponse = dockerManifestRequest.content?.text
-//		println("data is $dockerManifestResponse")
+		String configSha = null
 
-		if (dockerManifestRequest.responseCode == 200) {
+		get("${dockerRegistryBase}/${imageName}/manifests/${latestReleaseTagVersion}",
+			["Accept": "application/vnd.docker.distribution.manifest.v2+json"]) { content, code ->
 
-//			println("content is $dockerManifestResponse");
+			configSha = json.parseText(content).config.digest
+		}
 
-			if (dockerManifestResponse != null) {
-				println(JsonOutput.prettyPrint(dockerManifestResponse));
-			}
+		if (configSha == null) {
+			throw new RuntimeException("Unable to get config sha");
+		}
 
-			def dockerManifest = json.parseText(dockerManifestResponse)
-			def configSha = dockerManifest.config.digest
+		DockerManifest manifest = null
 
-			registryReleaseManifestApi = "${dockerRegistryBase}/${imageName}/blobs/${configSha}"
-//			println "Config ManifestAPI URL found: " + registryReleaseManifestApi
-			dockerManifestRequest = new URL(registryReleaseManifestApi).openConnection()  as HttpURLConnection
-			dockerManifestRequest.setRequestProperty("Authorization", "Bearer $dockerRegistryBearerToken")
-			dockerManifestRequest.setRequestProperty("Accept", "application/json")
-			dockerManifestRequest.connect()
+		get("${dockerRegistryBase}/${imageName}/blobs/${configSha}", ["Accept":"application/json" ]) { configContent, configCode ->
+			def dockerManifest = json.parseText(configContent)
+			manifest = mapper.readValue(dockerManifest.config.Labels.buildManifest.toString(), DockerManifest)
+		}
 
-			dockerManifestResponse = dockerManifestRequest.content?.text
-//			println("data is $dockerManifestResponse ${dockerManifestRequest.responseCode}")
-			dockerManifest = json.parseText(dockerManifestResponse)
+		if (manifest == null) {
+			throw new RuntimeException("Was unable to get manifest!")
+		}
 
-			return mapper.readValue(dockerManifest.config.Labels.buildManifest.toString(), DockerManifest)
-		} else {
-			return null
+		return manifest
+	}
+
+	def tagReleaseContainer(String imageName, String buildTag, String releaseTag, String mergeSha) {
+		String manifestType = 'application/vnd.docker.distribution.manifest.v2+json'
+		String buildManifestUrl = "${registryReleaseManifestApi}/${imageName}/manifests/${buildTag}"
+		String releaseManifestUrl = "${registryReleaseManifestApi}/${imageName}/manifests/${releaseTag}"
+
+		if (!mergeSha) {
+			releaseManifestUrl += ".deploy.${new Date().getTime()}"
+		}
+
+		String releaseManifest = null
+
+		Map<String, String> manifestHeaders = ['Accept': 'application/vnd.docker.distribution.manifest.v2+json']
+		get(buildManifestUrl, manifestHeaders) { String data, int code ->
+			releaseManifest = data
+		}
+
+		if (releaseManifest == null) {
+			throw new RuntimeException("Failed to tag ${releaseManifestUrl} - no release manifest to copy from")
+		}
+
+		manifestHeaders = ['Authorization': basicAuthCreds, 'Content-Type': manifestType]
+
+		put(releaseManifestUrl, manifestHeaders, releaseManifest)
+
+		if (mergeSha) {
+			// this is the same container that was deployed into the current environment after a test run but is tagged "final" with the sha for the merge
+			String releaseManifestShaUrl = "${registryApi}/${releaseTag.repo}/manifests/${releaseTag}.final.${mergeSha}"
+
+			put(releaseManifestShaUrl, manifestHeaders, releaseManifest)
 		}
 	}
 }
