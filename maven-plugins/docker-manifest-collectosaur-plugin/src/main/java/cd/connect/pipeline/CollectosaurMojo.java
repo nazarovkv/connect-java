@@ -93,6 +93,20 @@ public class CollectosaurMojo extends AbstractMojo {
 
 	ObjectMapper mapper = new ObjectMapper();
 
+	public static String checkForExternalBearerToken(String bearerToken) throws MojoFailureException {
+
+		if (bearerToken.startsWith("@")) {
+			File f = new File(bearerToken.substring(1));
+			try {
+				bearerToken = StringUtils.strip(FileUtils.readFileToString(f, Charset.defaultCharset()), "\r\n \t");
+			} catch (IOException e) {
+				throw new MojoFailureException("Unable to read docker bearer token from file " + f.getAbsolutePath(), e);
+			}
+		}
+
+		return bearerToken;
+	}
+
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		List<ArtifactManifest> manifestList = new ArrayList<>();
@@ -103,14 +117,7 @@ public class CollectosaurMojo extends AbstractMojo {
 			}
 
 			// to avoid it being in the logs, read it from a file and strip whitespace
-			if (dockerRegistryBearerToken.startsWith("@")) {
-				File f = new File(dockerRegistryBearerToken.substring(1));
-				try {
-					dockerRegistryBearerToken = StringUtils.strip(FileUtils.readFileToString(f, Charset.defaultCharset()), "\r\n \t");
-				} catch (IOException e) {
-					throw new MojoFailureException("Unable to read docker bearer token from file " + f.getAbsolutePath(), e);
-				}
-			}
+			dockerRegistryBearerToken = checkForExternalBearerToken(dockerRegistryBearerToken);
 
 			DockerUtils dockerUtils = new DockerUtils(dockerRegistry, dockerRegistryBearerToken);
 			// first we check in the registry and see if there is a tagged previous successful build.
