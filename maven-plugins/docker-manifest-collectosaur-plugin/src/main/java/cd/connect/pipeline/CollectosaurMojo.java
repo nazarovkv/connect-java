@@ -3,7 +3,10 @@ package cd.connect.pipeline;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -11,10 +14,12 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.project.MavenProject;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +49,11 @@ public class CollectosaurMojo extends AbstractMojo {
 	private static final String COLLECTOSAUR_MANIFEST = "collectosaurManifest";
 	private static final String COLLECTOSAUR_BRANCH = "collectosaurBranch";
 	private static final String COLLECTOSAUR_SHA = "collectosaurSha";
+	private static final String COLLECTOSAUR_TIMESTAMP = "collectosaurTimestamp";
+
+	@Parameter( defaultValue = "${session}", required = true, readonly = true )
+	private MavenSession session;
+
 	// the location of the mamasaur file
 	@Parameter(name = "inputManifestFile", required = true)
 	private File inputManifestFile;
@@ -64,13 +74,13 @@ public class CollectosaurMojo extends AbstractMojo {
 	@Parameter(name = "dockerRegistryBearerToken", required = false)
 	private String dockerRegistryBearerToken;
 
-	// this is the name of this deployment container
-	@Parameter(name = "deploymentContainerName", required = false)
-	private String deploymentContainerName;
+	// this is the name of this deployment container, e.g /co-name/deploy
+	@Parameter(name = "deployContainerImageName", required = false)
+	private String deployContainerImageName;
 
 	// so we can find a successful one. This is used by the Retagosaur as well (to retag on success)
-	@Parameter(name = "retagOnSuccessSuffix", required = false)
-	private String retagOnSuccessSuffix;
+	@Parameter(name = "targetEnvironment", required = false)
+	private String targetEnvironment;
 
 	@Parameter(name = "sha")
 	private String sha;
@@ -87,15 +97,28 @@ public class CollectosaurMojo extends AbstractMojo {
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		List<ArtifactManifest> manifestList = new ArrayList<>();
 
-		if (dockerRegistry != null && dockerRegistryBearerToken != null) {
-			if (!dockerRegistry.startsWith("https://")) {
+		if (dockerRegistry != null && dockerRegistryBearerToken != null && targetEnvironment != null) {
+			if (!dockerRegistry.startsWith("http")) {
 				dockerRegistry = "https://" + dockerRegistry;
+			}
+
+			// to avoid it being in the logs, read it from a file and strip whitespace
+			if (dockerRegistryBearerToken.startsWith("@")) {
+				File f = new File(dockerRegistryBearerToken.substring(1));
+				try {
+					dockerRegistryBearerToken = StringUtils.strip(FileUtils.readFileToString(f, Charset.defaultCharset()), "\r\n \t");
+				} catch (IOException e) {
+					throw new MojoFailureException("Unable to read docker bearer token from file " + f.getAbsolutePath(), e);
+				}
 			}
 
 			DockerUtils dockerUtils = new DockerUtils(dockerRegistry, dockerRegistryBearerToken);
 			// first we check in the registry and see if there is a tagged previous successful build.
 			// if there isn't - that is ok, we assume this is the very first one.
-			manifestList = dockerUtils.getLatestArtifactManifest(deploymentContainerName, retagOnSuccessSuffix);
+			manifestList = dockerUtils.getLatestArtifactManifest(deployContainerImageName, targetEnvironment);
+		} else if (dockerRegistryBearerToken != null || dockerRegistry != null || targetEnvironment != null) {
+			throw new MojoExecutionException("If using a docker registry, you must " +
+				"specify all three of dockerRegistryBearerToken, dockerRegistry, targetEnvironment");
 		}
 
 		List<ArtifactManifest> inputManifests = null;
@@ -179,16 +202,20 @@ public class CollectosaurMojo extends AbstractMojo {
 	}
 
 	private void writeSystemProperties(DockerManifest newManifest) throws MojoFailureException {
-		try {
-			System.setProperty(COLLECTOSAUR_MANIFEST, mapper.writeValueAsString(newManifest));
-		} catch (JsonProcessingException e) {
-			throw new MojoFailureException("Unable to write manifest json to system property");
-		}
+		for (MavenProject project : session.getProjectDependencyGraph().getSortedProjects()) {
+			try {
+				project.getProperties().setProperty(COLLECTOSAUR_MANIFEST, mapper.writeValueAsString(newManifest));
+			} catch (JsonProcessingException e) {
+				throw new MojoFailureException("Unable to write manifest json to system property");
+			}
 
-		System.setProperty(COLLECTOSAUR_BRANCH, branch == null ? "master" : branch);
+			project.getProperties().setProperty(COLLECTOSAUR_BRANCH, branch == null ? "master" : branch);
 
-		if (sha != null) {
-			System.setProperty(COLLECTOSAUR_SHA, sha);
+			if (sha != null) {
+				project.getProperties().setProperty(COLLECTOSAUR_SHA, sha);
+			}
+
+			project.getProperties().setProperty(COLLECTOSAUR_TIMESTAMP, System.currentTimeMillis() + "");
 		}
 	}
 
