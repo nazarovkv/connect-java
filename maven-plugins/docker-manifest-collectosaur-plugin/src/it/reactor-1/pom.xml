@@ -13,6 +13,10 @@
 		<module>module3</module>
 	</modules>
 
+	<properties>
+		<build.version>1</build.version>
+	</properties>
+
 	<build>
 		<plugins>
 			<plugin>
@@ -47,6 +51,10 @@
 							<goal>collectosaur</goal>
 						</goals>
 						<configuration>
+							<dockerRegistry>gcr.io</dockerRegistry>
+							<deployContainerImageName>featurehub/test-container</deployContainerImageName>
+							<dockerRegistryBearerToken>@../../../docker-bearer-token.txt</dockerRegistryBearerToken>
+							<targetEnvironment>ci</targetEnvironment>
 							<inputManifestFile>target/connect-manifest.json</inputManifestFile>
 							<outputYamlManifestFile>src/main/resources/manifest.yaml</outputYamlManifestFile>
 							<outputJsonManifestFile>src/main/resources/manifest.json</outputJsonManifestFile>
@@ -57,6 +65,41 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>com.google.cloud.tools</groupId>
+				<artifactId>jib-maven-plugin</artifactId>
+				<version>1.4.0</version>
+				<executions>
+					<execution>
+						<id>docker-build</id>
+						<phase>compile</phase>
+						<goals>
+							<goal>build</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<allowInsecureRegistries>false</allowInsecureRegistries>
+					<from>
+						<image>gcr.io/featurehub/basedeploy:1.1</image>
+					</from>
+					<to>
+						<image>${docker.repository}/featurehub/test-container:${collectosaurTimestamp}.${build.version}</image>
+					</to>
+					<container>
+						<entrypoint>/bin/sh</entrypoint>
+						<args>
+							<arg>-c</arg>
+							<arg>chmod +x /app/resources/deploy.sh &amp;&amp; /app/resources/deploy.sh</arg>
+						</args>
+						<labels>
+							<buildSha>${collectosaurSha}</buildSha>
+							<buildManifest>${collectosaurManifest}</buildManifest>
+							<buildBranch>${collectosaurBranch}</buildBranch>
+						</labels>
+					</container>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

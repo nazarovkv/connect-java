@@ -3,7 +3,6 @@ package cd.connect.pipeline;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.plugin.AbstractMojo;
@@ -25,9 +24,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * This is designed to be run in a reactor
- *
- * @author Richard Vowles - https://plus.google.com/+RichardVowles
+ * This is designed to be run in a reactor, but doesn't need to be because of the support for additional
+ * manifests.
  */
 @Mojo(name = "mamasaur",
 	defaultPhase = LifecyclePhase.PACKAGE,
