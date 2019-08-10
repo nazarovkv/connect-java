@@ -6,7 +6,7 @@ package cd.connect.pipeline;
 public class ArtifactManifest {
 	public String baseImageName;
 	public String fullImageName;
-	public String module;
+	public String serviceName;
 
 	public String getBaseImageName() {
 		return baseImageName;
@@ -24,11 +24,11 @@ public class ArtifactManifest {
 		this.fullImageName = fullImageName;
 	}
 
-	public String getModule() {
-		return module;
+	public String getServiceName() {
+		return serviceName;
 	}
 
-	public void setModule(String module) {
-		this.module = module;
+	public void setServiceName(String serviceName) {
+		this.serviceName = serviceName;
 	}
 }

@@ -49,7 +49,7 @@ public class BabysaurMojo extends AbstractMojo {
 
 			am.baseImageName = baseImageName;
 			am.fullImageName = fullImageName;
-			am.module = serviceName == null ? project.getName() : serviceName;
+			am.serviceName = serviceName == null ? project.getName() : serviceName;
 
 			fw.write(om.writeValueAsString(am));
 			fw.flush();

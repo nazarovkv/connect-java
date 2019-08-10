@@ -6,7 +6,6 @@ public class DockerManifest {
 	public List<ArtifactManifest> manifest;
 	public String pr;
 	public String sha;
-	public String originalSha;
 	public String branch;
 
 	public List<ArtifactManifest> getManifest() {
@@ -31,14 +30,6 @@ public class DockerManifest {
 
 	public void setSha(String sha) {
 		this.sha = sha;
-	}
-
-	public String getOriginalSha() {
-		return originalSha;
-	}
-
-	public void setOriginalSha(String originalSha) {
-		this.originalSha = originalSha;
 	}
 
 	public String getBranch() {

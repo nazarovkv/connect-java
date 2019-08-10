@@ -8,7 +8,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 
-import static cd.connect.pipeline.CollectosaurMojo.checkForExternalBearerToken;
+import static cd.connect.pipeline.DeployosaurMojo.checkForExternalBearerToken;
 
 /**
  * This will retag an existing tag, copying the manifest over. It is used once all of the e2e tests pass
@@ -17,7 +17,7 @@ import static cd.connect.pipeline.CollectosaurMojo.checkForExternalBearerToken;
 @Mojo(name = "retagosaur",
 	defaultPhase = LifecyclePhase.PACKAGE,
 	requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME, threadSafe = true)
-public class Retagosaur extends AbstractMojo {
+public class RetagosaurMojo extends AbstractMojo {
 	// where we are looking for artifacts
 	@Parameter(name = "dockerRegistry", required = true)
 	private String dockerRegistry;
@@ -30,9 +30,10 @@ public class Retagosaur extends AbstractMojo {
 	@Parameter(name = "deployContainerImageName", required = true)
 	private String deployContainerImageName;
 
-	// so we can find a successful one. This is used by the Retagosaur as well (to retag on success)
-	@Parameter(name = "targetEnvironment", required = true)
-	private String targetEnvironment;
+	@Parameter(name = "targetNamespace", required = true)
+	private String targetNamespace;
+	@Parameter(name = "targetCluster", required = true)
+	private String targetCluster;
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
