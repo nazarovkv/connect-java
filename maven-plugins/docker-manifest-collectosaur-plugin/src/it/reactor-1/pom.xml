@@ -48,7 +48,7 @@
 						<id>collect</id>
 						<phase>compile</phase>
 						<goals>
-							<goal>collectosaur</goal>
+							<goal>deployasaur</goal>
 						</goals>
 						<configuration>
 							<dockerRegistry>gcr.io</dockerRegistry>
@@ -60,7 +60,6 @@
 							<outputJsonManifestFile>src/main/resources/manifest.json</outputJsonManifestFile>
 							<pullRequest>My PR</pullRequest>
 							<sha>12345</sha>
-							<originalSha>789abdc</originalSha>
 							<branch>monsters</branch>
 						</configuration>
 					</execution>

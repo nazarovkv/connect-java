@@ -42,10 +42,10 @@ import java.util.stream.Collectors;
  * 1540501501119.7.ci.nonprod.deploy.1540502359372.final.mergeSha
  * (where mergeSha is the sha returned from the repository when something is merged)
  */
-@Mojo(name = "collectosaur",
+@Mojo(name = "deployosaur",
 	defaultPhase = LifecyclePhase.PACKAGE,
 	requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME, threadSafe = true)
-public class CollectosaurMojo extends AbstractMojo {
+public class DeployosaurMojo extends AbstractMojo {
 	private static final String COLLECTOSAUR_MANIFEST = "collectosaurManifest";
 	private static final String COLLECTOSAUR_BRANCH = "collectosaurBranch";
 	private static final String COLLECTOSAUR_SHA = "collectosaurSha";
@@ -79,15 +79,16 @@ public class CollectosaurMojo extends AbstractMojo {
 	private String deployContainerImageName;
 
 	// so we can find a successful one. This is used by the Retagosaur as well (to retag on success)
-	@Parameter(name = "targetEnvironment", required = false)
-	private String targetEnvironment;
+	// e.g. ci and nonprod, ci and dev-cluster
+	@Parameter(name = "targetNamespace")
+	private String targetNamespace;
+	@Parameter(name = "targetCluster")
+	private String targetCluster;
 
 	@Parameter(name = "sha")
 	private String sha;
 	@Parameter(name = "pullRequest")
 	private String pullRequest;
-	@Parameter(name = "originalSha")
-	private String originalSha;
 	@Parameter(name = "branch")
 	private String branch;
 
@@ -111,10 +112,12 @@ public class CollectosaurMojo extends AbstractMojo {
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		List<ArtifactManifest> manifestList = new ArrayList<>();
 
-		if (dockerRegistry != null && dockerRegistryBearerToken != null && targetEnvironment != null) {
+		if (dockerRegistry != null && dockerRegistryBearerToken != null && targetCluster != null && targetNamespace != null) {
 			if (!dockerRegistry.startsWith("http")) {
 				dockerRegistry = "https://" + dockerRegistry;
 			}
+
+			String targetEnvironment = targetNamespace + "." + targetCluster;
 
 			// to avoid it being in the logs, read it from a file and strip whitespace
 			dockerRegistryBearerToken = checkForExternalBearerToken(dockerRegistryBearerToken);
@@ -123,7 +126,7 @@ public class CollectosaurMojo extends AbstractMojo {
 			// first we check in the registry and see if there is a tagged previous successful build.
 			// if there isn't - that is ok, we assume this is the very first one.
 			manifestList = dockerUtils.getLatestArtifactManifest(deployContainerImageName, targetEnvironment);
-		} else if (dockerRegistryBearerToken != null || dockerRegistry != null || targetEnvironment != null) {
+		} else if (dockerRegistryBearerToken != null || dockerRegistry != null || targetCluster != null || targetNamespace != null) {
 			throw new MojoExecutionException("If using a docker registry, you must " +
 				"specify all three of dockerRegistryBearerToken, dockerRegistry, targetEnvironment");
 		}
@@ -147,14 +150,13 @@ public class CollectosaurMojo extends AbstractMojo {
 		}
 
 		finalManifest.forEach(m -> {
-			getLog().info(String.format("manifest - module %s - image %s", m.module, m.fullImageName));
+			getLog().info(String.format("manifest - module %s - image %s", m.serviceName, m.fullImageName));
 		});
 
 		DockerManifest newManifest = new DockerManifest();
 		newManifest.manifest = finalManifest;
 		newManifest.sha = sha;
 		newManifest.pr = pullRequest;
-		newManifest.originalSha = originalSha;
 		newManifest.branch = branch;
 
 		writeSystemProperties(newManifest);
@@ -173,7 +175,7 @@ public class CollectosaurMojo extends AbstractMojo {
 				getLog().error("Image " + m.fullImageName + " is not valid, it has no tag!");
 				throw new MojoFailureException("Invalid image name " + m.fullImageName);
 			}
-			sb.append(String.format("%s:\n  image:\n    prefix: '%s'\n    tag: '%s'\n", m.module, parts[0], parts[1]));
+			sb.append(String.format("%s:\n  image:\n    prefix: '%s'\n    tag: '%s'\n", m.serviceName, parts[0], parts[1]));
 		}
 
 		// ensure the folders exist
@@ -228,11 +230,11 @@ public class CollectosaurMojo extends AbstractMojo {
 
 
 	private List<ArtifactManifest> mergeManifests(List<ArtifactManifest> manifestList, List<ArtifactManifest> inputManifests) {
-		Map<String, ArtifactManifest> existing = inputManifests.stream().collect(Collectors.toMap(ArtifactManifest::getModule, Function.identity()));
+		Map<String, ArtifactManifest> existing = inputManifests.stream().collect(Collectors.toMap(ArtifactManifest::getServiceName, Function.identity()));
 
 		List<ArtifactManifest> newList = new ArrayList<>(inputManifests);
 		manifestList.forEach(m -> {
-			if (existing.get(m.module) == null) {
+			if (existing.get(m.serviceName) == null) {
 				newList.add(m);
 			}
 		});
