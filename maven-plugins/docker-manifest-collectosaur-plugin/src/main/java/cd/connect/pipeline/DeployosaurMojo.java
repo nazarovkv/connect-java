@@ -37,10 +37,14 @@ import java.util.stream.Collectors;
  * that the build process can use to deploy it so it can run the e2e tests.
  *
  * Our build tags for the deploy container look like this:
- * 1540501501119.7.ci.nonprod.deploy.1540502359372
+ * 1540501501119.7
  * when they succeed they look like this:
  * 1540501501119.7.ci.nonprod.deploy.1540502359372.final.mergeSha
- * (where mergeSha is the sha returned from the repository when something is merged)
+ * (where mergeSha is the sha returned from the repository when something is merged. This is only used for
+ * diagnostic tools as labels cannot be updated once set in place)
+ * or
+ * 1540501501119.7.ci.nonprod.deploy.1540502359372
+ * (where the mergeSha is not provided, this is the tag of the promotable deployment image)
  */
 @Mojo(name = "deployosaur",
 	defaultPhase = LifecyclePhase.PACKAGE,
