@@ -12,10 +12,12 @@ class DockerUtils {
 	// https://registry-1.docker.io/
 	private final String dockerRegistryBearerToken;
 	private final ObjectMapper mapper = new ObjectMapper()
+	private final LogCallback logCallback
 
-	DockerUtils(String dockerRegistryBase, String dockerRegistryBearerToken) {
+	DockerUtils(String dockerRegistryBase, String dockerRegistryBearerToken, LogCallback logCallback) {
 		this.dockerRegistryBase = dockerRegistryBase + "/v2"
 		this.dockerRegistryBearerToken = dockerRegistryBearerToken
+		this.logCallback = logCallback
 	}
 
 	//filter for tags that are in the correct format of timestamp.build.project-env.cluster.deploy.timestamp
@@ -23,6 +25,8 @@ class DockerUtils {
 
 	String latestReleaseTag(String imageName, String targetEnv) {
 		def filteredTags = null
+
+		logCallback.info("Looking for tags: ${dockerRegistryBase}/${imageName}/tags/list")
 
 		// Return the latest ReleaseTag which was produced by submit-queue
 		get("${dockerRegistryBase}/${imageName}/tags/list?n=999", ["Accept": "application/json"]) { body, code ->
@@ -34,8 +38,10 @@ class DockerUtils {
 
 		if (filteredTags) {
 //			println "FILTER RETURNED LATEST " + filteredTags[0].toString()
+			logCallback.info("Merging with manifest from ${filteredTags[0]}")
 			return filteredTags[0]
 		} else {
+
 //			println "no matching tags"
 			return null
 		}
@@ -91,6 +97,7 @@ class DockerUtils {
 		headers.each { String key, String value ->
 			conn.setRequestProperty(key, value)
 		}
+		conn.setDoOutput(true)
 		conn.setRequestMethod('PUT')
 
 
@@ -136,14 +143,10 @@ class DockerUtils {
 		return manifest
 	}
 
-	def tagReleaseContainer(String imageName, String buildTag, String releaseTag, String mergeSha) {
+	void tagReleaseContainer(String imageName, String buildTag, String releaseTag, String mergeSha) {
 		String manifestType = 'application/vnd.docker.distribution.manifest.v2+json'
-		String buildManifestUrl = "${registryReleaseManifestApi}/${imageName}/manifests/${buildTag}"
-		String releaseManifestUrl = "${registryReleaseManifestApi}/${imageName}/manifests/${releaseTag}"
-
-		if (!mergeSha) {
-			releaseManifestUrl += ".deploy.${new Date().getTime()}"
-		}
+		String buildManifestUrl = "${dockerRegistryBase}/${imageName}/manifests/${buildTag}"
+		String releaseManifestUrl = "${dockerRegistryBase}/${imageName}/manifests/${releaseTag}"
 
 		String releaseManifest = null
 
@@ -156,15 +159,18 @@ class DockerUtils {
 			throw new RuntimeException("Failed to tag ${releaseManifestUrl} - no release manifest to copy from")
 		}
 
-		manifestHeaders = ['Authorization': basicAuthCreds, 'Content-Type': manifestType]
-
-		put(releaseManifestUrl, manifestHeaders, releaseManifest)
+		manifestHeaders = ['Content-Type': manifestType]
 
 		if (mergeSha) {
 			// this is the same container that was deployed into the current environment after a test run but is tagged "final" with the sha for the merge
-			String releaseManifestShaUrl = "${registryApi}/${releaseTag.repo}/manifests/${releaseTag}.final.${mergeSha}"
+			String releaseManifestShaUrl = "${dockerRegistryBase}/${imageName}/manifests/${releaseTag}.final.${mergeSha}"
+			logCallback.info("Tagging for merge sha: ${releaseManifestShaUrl}")
 
 			put(releaseManifestShaUrl, manifestHeaders, releaseManifest)
+		} else {
+			releaseManifestUrl += ".deploy.${new Date().getTime()}"
+			logCallback.info("Updating release manifest for ${releaseManifestUrl}")
+			put(releaseManifestUrl, manifestHeaders, releaseManifest)
 		}
 	}
 }

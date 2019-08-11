@@ -117,15 +117,13 @@ public class DeployosaurMojo extends AbstractMojo {
 				dockerRegistry = "https://" + dockerRegistry;
 			}
 
-			String targetEnvironment = targetNamespace + "." + targetCluster;
-
 			// to avoid it being in the logs, read it from a file and strip whitespace
 			dockerRegistryBearerToken = checkForExternalBearerToken(dockerRegistryBearerToken);
 
-			DockerUtils dockerUtils = new DockerUtils(dockerRegistry, dockerRegistryBearerToken);
+			DockerUtils dockerUtils = new DockerUtils(dockerRegistry, dockerRegistryBearerToken, info -> getLog().info(info));
 			// first we check in the registry and see if there is a tagged previous successful build.
 			// if there isn't - that is ok, we assume this is the very first one.
-			manifestList = dockerUtils.getLatestArtifactManifest(deployContainerImageName, targetEnvironment);
+			manifestList = dockerUtils.getLatestArtifactManifest(deployContainerImageName, targetNamespace);
 		} else if (dockerRegistryBearerToken != null || dockerRegistry != null || targetCluster != null || targetNamespace != null) {
 			throw new MojoExecutionException("If using a docker registry, you must " +
 				"specify all three of dockerRegistryBearerToken, dockerRegistry, targetEnvironment");

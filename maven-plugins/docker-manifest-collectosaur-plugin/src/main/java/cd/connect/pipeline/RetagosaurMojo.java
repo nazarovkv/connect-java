@@ -13,6 +13,14 @@ import static cd.connect.pipeline.DeployosaurMojo.checkForExternalBearerToken;
 /**
  * This will retag an existing tag, copying the manifest over. It is used once all of the e2e tests pass
  * and we are ready for an environment to be tagged.
+ *
+ * It can be used one of two ways
+ *
+ * (a) - using a mergeSha, which will add a new manifest with that sha so
+ * it can be found by display tools (like the Connect Dashboard) to track back exactly where in the history it was
+ * merged/squashed/rebased.
+ * (b) - without a merge sha, which will cause it to create a .deploy.TIMESTAMP manifest which is intended for
+ * the e2e run to indicate this is a "golden image".
  */
 @Mojo(name = "retagosaur",
 	defaultPhase = LifecyclePhase.PACKAGE,
@@ -30,10 +38,16 @@ public class RetagosaurMojo extends AbstractMojo {
 	@Parameter(name = "deployContainerImageName", required = true)
 	private String deployContainerImageName;
 
+	@Parameter(name = "deployContainerTag", required = true)
+	private String deployContainerTag;
+
 	@Parameter(name = "targetNamespace", required = true)
 	private String targetNamespace;
 	@Parameter(name = "targetCluster", required = true)
 	private String targetCluster;
+
+	@Parameter(name = "mergeSha", required = false)
+	private String mergeSha;
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
@@ -44,8 +58,13 @@ public class RetagosaurMojo extends AbstractMojo {
 		// to avoid it being in the logs, read it from a file and strip whitespace
 		dockerRegistryBearerToken = checkForExternalBearerToken(dockerRegistryBearerToken);
 
-		DockerUtils dockerUtils = new DockerUtils(dockerRegistry, dockerRegistryBearerToken);
+		DockerUtils dockerUtils = new DockerUtils(dockerRegistry, dockerRegistryBearerToken, info -> getLog().info(info));
 
-
+		try {
+			dockerUtils.tagReleaseContainer(deployContainerImageName, deployContainerTag,
+				deployContainerTag + "." + targetNamespace + "." + targetCluster, mergeSha);
+		} catch (Exception e) {
+			throw new MojoFailureException("Unable to re-tag container", e);
+		}
 	}
 }
