@@ -1,5 +1,6 @@
 package cd.connect.pipeline;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -7,6 +8,10 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
 
 import static cd.connect.pipeline.DeployosaurMojo.checkForExternalBearerToken;
 
@@ -60,9 +65,23 @@ public class RetagosaurMojo extends AbstractMojo {
 
 		DockerUtils dockerUtils = new DockerUtils(dockerRegistry, dockerRegistryBearerToken, info -> getLog().info(info));
 
+		String tag = deployContainerTag;
+		if (deployContainerTag.startsWith("@")) {
+			String filename = deployContainerTag.substring(1);
+			getLog().info("reading file containing tag:" + filename);
+
+			try {
+				tag = FileUtils.readFileToString(new File(filename), Charset.defaultCharset());
+
+				getLog().info(String.format("tag is now: `%s`", tag));
+			} catch (IOException e) {
+				throw new MojoFailureException("Unable to read file " + filename, e);
+			}
+		}
+
 		try {
-			dockerUtils.tagReleaseContainer(deployContainerImageName, deployContainerTag,
-				deployContainerTag + "." + targetNamespace + "." + targetCluster, mergeSha);
+			dockerUtils.tagReleaseContainer(deployContainerImageName, tag,
+				tag + "." + targetNamespace + "." + targetCluster, mergeSha);
 		} catch (Exception e) {
 			throw new MojoFailureException("Unable to re-tag container", e);
 		}

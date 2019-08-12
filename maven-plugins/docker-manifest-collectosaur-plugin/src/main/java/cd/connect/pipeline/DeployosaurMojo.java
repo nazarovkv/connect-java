@@ -54,6 +54,8 @@ public class DeployosaurMojo extends AbstractMojo {
 	private static final String COLLECTOSAUR_BRANCH = "collectosaurBranch";
 	private static final String COLLECTOSAUR_SHA = "collectosaurSha";
 	private static final String COLLECTOSAUR_TIMESTAMP = "collectosaurTimestamp";
+	private static final String COLLECTOSAUR_TAG = "collectosaurTag";
+
 
 	@Parameter( defaultValue = "${session}", required = true, readonly = true )
 	private MavenSession session;
@@ -81,6 +83,15 @@ public class DeployosaurMojo extends AbstractMojo {
 	// this is the name of this deployment container, e.g /co-name/deploy
 	@Parameter(name = "deployContainerImageName", required = false)
 	private String deployContainerImageName;
+
+	// this is the file to which we write the tag name that was used. This allows us to pass it on to
+	// the retagosaur in a file.
+	@Parameter(name = "deployContainerTagOutputFile")
+	private String deployContainerTagOutputFile;
+
+	// we use the collectosaurTimestamp . buildNumber to generate the tag and store it in the file
+	@Parameter(name = "buildNumber")
+	private String buildNumber;
 
 	// so we can find a successful one. This is used by the Retagosaur as well (to retag on success)
 	// e.g. ci and nonprod, ci and dev-cluster
@@ -161,10 +172,22 @@ public class DeployosaurMojo extends AbstractMojo {
 		newManifest.pr = pullRequest;
 		newManifest.branch = branch;
 
-		writeSystemProperties(newManifest);
+		String currentTimestamp = System.currentTimeMillis() + "";
+		writeSystemProperties(newManifest, currentTimestamp);
 
-		writeJsonFile();
+		writeJsonFile(newManifest);
 		writeYamlFile(newManifest);
+		writeBuildTag(currentTimestamp);
+	}
+
+	private void writeBuildTag(String currentTimestamp) throws MojoFailureException {
+		if (buildNumber != null && deployContainerTagOutputFile != null) {
+			try {
+				FileUtils.write(new File(deployContainerTagOutputFile), currentTimestamp + "." + buildNumber, Charset.defaultCharset());
+			} catch (IOException e) {
+				throw new MojoFailureException("Unable to write to file " + deployContainerTagOutputFile, e);
+			}
+		}
 	}
 
 	// don't really want to include snakeyaml
@@ -194,7 +217,7 @@ public class DeployosaurMojo extends AbstractMojo {
 		}
 	}
 
-	private void writeJsonFile() throws MojoFailureException {
+	private void writeJsonFile(DockerManifest newManifest) throws MojoFailureException {
 		if (outputJsonManifestFile != null) {
 
 			// ensure the folders exist
@@ -204,20 +227,20 @@ public class DeployosaurMojo extends AbstractMojo {
 				oFile.getParentFile().mkdirs();
 			}
 
-			try (FileWriter fw = new FileWriter(outputJsonManifestFile)) {
-				IOUtils.write(System.getProperty(COLLECTOSAUR_MANIFEST), fw);
-			} catch (IOException iex) {
-				throw new MojoFailureException("Cannot write output json file", iex);
+			try {
+				FileUtils.write(new File(outputJsonManifestFile), mapper.writeValueAsString(newManifest), Charset.defaultCharset());
+			} catch (IOException e) {
+				throw new MojoFailureException("Unable to write manifest json to system property", e);
 			}
 		}
 	}
 
-	private void writeSystemProperties(DockerManifest newManifest) throws MojoFailureException {
+	private void writeSystemProperties(DockerManifest newManifest, String currentTimestamp) throws MojoFailureException {
 		for (MavenProject project : session.getProjectDependencyGraph().getSortedProjects()) {
 			try {
 				project.getProperties().setProperty(COLLECTOSAUR_MANIFEST, mapper.writeValueAsString(newManifest));
 			} catch (JsonProcessingException e) {
-				throw new MojoFailureException("Unable to write manifest json to system property");
+				throw new MojoFailureException("Unable to write manifest json to system property", e);
 			}
 
 			project.getProperties().setProperty(COLLECTOSAUR_BRANCH, branch == null ? "master" : branch);
@@ -226,7 +249,7 @@ public class DeployosaurMojo extends AbstractMojo {
 				project.getProperties().setProperty(COLLECTOSAUR_SHA, sha);
 			}
 
-			project.getProperties().setProperty(COLLECTOSAUR_TIMESTAMP, System.currentTimeMillis() + "");
+			project.getProperties().setProperty(COLLECTOSAUR_TIMESTAMP, currentTimestamp);
 		}
 	}
 
