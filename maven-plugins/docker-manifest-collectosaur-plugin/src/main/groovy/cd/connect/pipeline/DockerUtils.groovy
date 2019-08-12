@@ -8,8 +8,7 @@ import groovy.transform.CompileStatic
 import org.apache.tools.ant.taskdefs.condition.Http
 
 class DockerUtils {
-	private final String dockerRegistryBase;
-	// https://registry-1.docker.io/
+	private final String dockerRegistryBase; // e.g https://registry-1.docker.io/ or gcr.io
 	private final String dockerRegistryBearerToken;
 	private final ObjectMapper mapper = new ObjectMapper()
 	private final LogCallback logCallback
@@ -30,8 +29,11 @@ class DockerUtils {
 
 		// Return the latest ReleaseTag which was produced by submit-queue
 		get("${dockerRegistryBase}/${imageName}/tags/list?n=999", ["Accept": "application/json"]) { body, code ->
-			def tags = new JsonSlurper().parseText(body)['tags']
-			filteredTags = tags.findAll { it ==~ /(\d+)\.(\d+)\.${targetEnv}\.(?=\S*['-])([a-zA-Z'-]+).(\w+)\.(\d+)/ }
+			List<String> tags = new JsonSlurper().parseText(body)['tags'] as List<String>
+//			println tags.collect({"\"$it\""}).join(",")
+//			tags.removeAll { it ==~ /(\d+)\.(\d+)\.${targetEnv}\.(?=\S*['-])([a-zA-Z'-]+)\.final\.(\d+)/ }
+//			println tags
+			filteredTags = tags.findAll { it ==~ /(\d+)\.(\d+)\.${targetEnv}\.(?=\S*['-])([a-zA-Z'-]+)\.deploy\.(\d+)/ }
 			filteredTags.sort()
 			filteredTags = filteredTags.reverse()
 		}
@@ -163,6 +165,7 @@ class DockerUtils {
 
 		if (mergeSha) {
 			// this is the same container that was deployed into the current environment after a test run but is tagged "final" with the sha for the merge
+			// it should never be picked up as a consideration for future manifest merging
 			String releaseManifestShaUrl = "${dockerRegistryBase}/${imageName}/manifests/${releaseTag}.final.${mergeSha}"
 			logCallback.info("Tagging for merge sha: ${releaseManifestShaUrl}")
 
