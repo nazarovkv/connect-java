@@ -156,7 +156,7 @@ public class Jersey2V3ApiGenerator extends AbstractJavaJAXRSServerCodegen implem
     });
     return super.postProcessModels(objs);
   }
-  
+
   @SuppressWarnings("unchecked")
   private List<CodegenOperation> getCodegenOperations(Map<String, Object> objs) {
     return (List<CodegenOperation>) getOperations(objs).get("operation");
@@ -171,6 +171,7 @@ public class Jersey2V3ApiGenerator extends AbstractJavaJAXRSServerCodegen implem
   public String toModelName(String name) {
     return (name != null) ? super.toModelName(name) : "<<unknown-to-model-name-is-null>>";
   }
+
 
 
   @Override
@@ -253,6 +254,6 @@ public class Jersey2V3ApiGenerator extends AbstractJavaJAXRSServerCodegen implem
       return "DefaultApi";
     }
 
-    return name.substring(0,1).toUpperCase() + name.substring(1);
+    return org.openapitools.codegen.utils.StringUtils.camelize(name);
   }
 }
