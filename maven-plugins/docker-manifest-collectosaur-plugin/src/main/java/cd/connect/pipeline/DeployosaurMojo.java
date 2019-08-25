@@ -106,6 +106,10 @@ public class DeployosaurMojo extends AbstractMojo {
 	private String pullRequest;
 	@Parameter(name = "branch")
 	private String branch;
+	// if the branch name matches this branch name, we ignore previous Docker images for deployment
+	// and just use what is here. e.g. master
+	@Parameter(name = "goldenBranch")
+	private String goldenBranch;
 
 	ObjectMapper mapper = new ObjectMapper();
 
@@ -127,21 +131,26 @@ public class DeployosaurMojo extends AbstractMojo {
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		List<ArtifactManifest> manifestList = new ArrayList<>();
 
-		if (dockerRegistry != null && dockerRegistryBearerToken != null && targetCluster != null && targetNamespace != null) {
-			if (!dockerRegistry.startsWith("http")) {
-				dockerRegistry = "https://" + dockerRegistry;
+		// only go ask Docker for previous deploy manifest if we are not on our special branch (e.g. master)
+		if (goldenBranch == null || !goldenBranch.equals(branch)) {
+			if (dockerRegistry != null && dockerRegistryBearerToken != null && targetCluster != null && targetNamespace != null) {
+				if (!dockerRegistry.startsWith("http")) {
+					dockerRegistry = "https://" + dockerRegistry;
+				}
+
+				// to avoid it being in the logs, read it from a file and strip whitespace
+				dockerRegistryBearerToken = checkForExternalBearerToken(dockerRegistryBearerToken);
+
+				DockerUtils dockerUtils = new DockerUtils(dockerRegistry, dockerRegistryBearerToken, info -> getLog().info(info));
+				// first we check in the registry and see if there is a tagged previous successful build.
+				// if there isn't - that is ok, we assume this is the very first one.
+				manifestList = dockerUtils.getLatestArtifactManifest(deployContainerImageName, targetNamespace);
+			} else if (dockerRegistryBearerToken != null || dockerRegistry != null || targetCluster != null || targetNamespace != null) {
+				throw new MojoExecutionException("If using a docker registry, you must " +
+					"specify all three of dockerRegistryBearerToken, dockerRegistry, targetEnvironment");
 			}
-
-			// to avoid it being in the logs, read it from a file and strip whitespace
-			dockerRegistryBearerToken = checkForExternalBearerToken(dockerRegistryBearerToken);
-
-			DockerUtils dockerUtils = new DockerUtils(dockerRegistry, dockerRegistryBearerToken, info -> getLog().info(info));
-			// first we check in the registry and see if there is a tagged previous successful build.
-			// if there isn't - that is ok, we assume this is the very first one.
-			manifestList = dockerUtils.getLatestArtifactManifest(deployContainerImageName, targetNamespace);
-		} else if (dockerRegistryBearerToken != null || dockerRegistry != null || targetCluster != null || targetNamespace != null) {
-			throw new MojoExecutionException("If using a docker registry, you must " +
-				"specify all three of dockerRegistryBearerToken, dockerRegistry, targetEnvironment");
+		} else {
+			getLog().info(String.format("On golden branch %s so ignoring previous builds.", branch));
 		}
 
 		List<ArtifactManifest> inputManifests = null;

@@ -13,6 +13,8 @@ import org.apache.maven.project.MavenProject;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Richard Vowles on 20/03/18.
@@ -37,6 +39,11 @@ public class BabysaurMojo extends AbstractMojo {
 	@Parameter(name = "serviceName", required = false)
 	private String serviceName;
 
+	// in case we wish to write the same module name out again under different names
+	@Parameter(name = "extras")
+	private List<Babysaur> extras;
+
+
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		ObjectMapper om = new ObjectMapper();
@@ -45,13 +52,23 @@ public class BabysaurMojo extends AbstractMojo {
 		  projectBuildDir.mkdirs();
 
 			FileWriter fw = new FileWriter(new File(projectBuildDir, MANIFEST_NAME));
-			ArtifactManifest am = new ArtifactManifest();
+			List<ArtifactManifest> manifests = new ArrayList<>();
 
-			am.baseImageName = baseImageName;
-			am.fullImageName = fullImageName;
-			am.serviceName = serviceName == null ? project.getName() : serviceName;
+			manifests.add(new ArtifactManifest.Builder()
+				.baseImageName(baseImageName)
+				.fullImageName(fullImageName)
+				.serviceName(serviceName == null ? project.getName() : serviceName).build());
 
-			fw.write(om.writeValueAsString(am));
+			if (extras != null) {
+				extras.forEach(b -> {
+					manifests.add(new ArtifactManifest.Builder()
+						.baseImageName(b.getBaseImageName())
+						.fullImageName(b.getFullImageName())
+						.serviceName(b.getServiceName() == null ? project.getName() : b.getServiceName()).build());
+				});
+			}
+
+			fw.write(om.writeValueAsString(manifests));
 			fw.flush();
 			fw.close();
 
