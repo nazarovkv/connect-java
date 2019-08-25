@@ -8,6 +8,15 @@ public class ArtifactManifest {
 	public String fullImageName;
 	public String serviceName;
 
+	public ArtifactManifest() {
+	}
+
+	private ArtifactManifest(Builder builder) {
+		setBaseImageName(builder.baseImageName);
+		setFullImageName(builder.fullImageName);
+		setServiceName(builder.serviceName);
+	}
+
 	public String getBaseImageName() {
 		return baseImageName;
 	}
@@ -30,5 +39,34 @@ public class ArtifactManifest {
 
 	public void setServiceName(String serviceName) {
 		this.serviceName = serviceName;
+	}
+
+
+	public static final class Builder {
+		private String baseImageName;
+		private String fullImageName;
+		private String serviceName;
+
+		public Builder() {
+		}
+
+		public Builder baseImageName(String val) {
+			baseImageName = val;
+			return this;
+		}
+
+		public Builder fullImageName(String val) {
+			fullImageName = val;
+			return this;
+		}
+
+		public Builder serviceName(String val) {
+			serviceName = val;
+			return this;
+		}
+
+		public ArtifactManifest build() {
+			return new ArtifactManifest(this);
+		}
 	}
 }
