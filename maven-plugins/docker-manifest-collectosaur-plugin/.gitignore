@@ -10,3 +10,5 @@ target
 !.gitattributes
 !.gitkeep
 docker-bearer-token.txt
+diffosaur.*
+
