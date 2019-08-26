@@ -26,6 +26,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+/**
+ * The purpose of this Mojo is simply to run "git diff" against master and compare it to the modules
+ * in your main reactor pom. It will output a file that can then be used to passed to Maven so it will only
+ * build the artifacts that have changed (using -pl)
+ */
 @Mojo(name = "diffosaur",
 	defaultPhase = LifecyclePhase.INITIALIZE,
 	requiresDependencyCollection = ResolutionScope.NONE,
