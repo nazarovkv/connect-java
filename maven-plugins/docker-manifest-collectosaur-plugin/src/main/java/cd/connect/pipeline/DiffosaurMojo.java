@@ -29,7 +29,11 @@ import java.util.stream.Collectors;
 /**
  * The purpose of this Mojo is simply to run "git diff" against master and compare it to the modules
  * in your main reactor pom. It will output a file that can then be used to passed to Maven so it will only
- * build the artifacts that have changed (using -pl)
+ * build the artifacts that have changed (using -pl). It always outputs three files:
+ *
+ * - diffosaur.txt - a test file of the changes
+ * - diffosaur.sh - a shell file for use in "source" to expose them as an environment variable
+ * - diffosaur.bat - a batch file for Windows as per diffosaur.sh
  */
 @Mojo(name = "diffosaur",
 	defaultPhase = LifecyclePhase.INITIALIZE,
