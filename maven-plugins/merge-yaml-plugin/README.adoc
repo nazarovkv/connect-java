@@ -1,0 +1,36 @@
+= Merge YAML Maven Plugin
+
+This plugin just merges YAML files together to create a single file. It is based on the 
+work of https://github.com/cobbzilla/merge-yml/blob/master/pom.xml[Jonathan Cobb].
+
+Sample:
+
+----
+<plugin>
+    <groupId>cd.connect.maven</groupId>
+    <artifactId>merge-yaml-plugin</artifactId>
+    <version>1.1</version>
+    <executions>
+        <execution>
+            <id>combine</id>
+            <goals>
+                <goal>mergeYaml</goal>
+            </goals>
+            <phase>initialize</phase>
+            <configuration>
+                <files>
+                    <file>api.yaml</file>
+                    <file>mock-api.yaml</file>
+                </files>
+                <finalYaml>final.yaml</finalYaml>
+            </configuration>
+        </execution>
+    </executions>
+    </plugin>
+----
+
+=== Developers
+
+- _Richard Vowles_, Software Developer (https://www.linkedin.com/in/richard-vowles-72035193/)
+
+
