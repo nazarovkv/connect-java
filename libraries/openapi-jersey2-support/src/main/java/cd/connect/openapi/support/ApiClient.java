@@ -548,17 +548,18 @@ public class ApiClient {
         else
           return new ApiResponse<>(statusCode, responseHeaders, deserialize(response, returnType), response);
       } else {
-        Consumer<Response> exception = errorResponse.get(response.getStatus());
-
+        Consumer<String> exception = errorResponse.get(response.getStatus());
+        GenericType<String> stringGenericType = new GenericType<String>() {};
+        String responseBody = response.readEntity(stringGenericType);
+        Integer responseStatus = response.getStatus();
         if (exception != null) {
-          exception.accept(response);
+          exception.accept(responseBody);
         } else if (response.getStatus() < 400) {
           throw new RedirectionException(response);
         } else if (response.getStatus() < 500) {
-          throw new ClientErrorException(response);
+          throw new ClientErrorException(responseBody, responseStatus);
         }
-        
-        throw new ServerErrorException(response);
+        throw new ServerErrorException(responseBody, responseStatus);
       }
     } finally {
       try {
@@ -569,7 +570,7 @@ public class ApiClient {
     }
   }
 
-  private static Map<Integer, Consumer<Response>> errorResponse;
+  private static Map<Integer, Consumer<String>> errorResponse;
 
   static {
     errorResponse = new HashMap<>();
