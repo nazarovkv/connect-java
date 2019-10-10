@@ -540,7 +540,7 @@ public class ApiClient {
       int statusCode = response.getStatusInfo().getStatusCode();
       Map<String, List<String>> responseHeaders = buildResponseHeaders(response);
 
-      if (response.getStatus() == Status.NO_CONTENT.getStatusCode()) {
+      if (statusCode == Status.NO_CONTENT.getStatusCode()) {
         return new ApiResponse<>(statusCode, responseHeaders, response);
       } else if (response.getStatusInfo().getFamily() == Status.Family.SUCCESSFUL) {
         if (returnType == null)
@@ -548,17 +548,17 @@ public class ApiClient {
         else
           return new ApiResponse<>(statusCode, responseHeaders, deserialize(response, returnType), response);
       } else {
-        Consumer<Response> exception = errorResponse.get(response.getStatus());
-
+        GenericType<String> stringGenericType = new GenericType<String>() {};
+        String responseBody = response.readEntity(stringGenericType);
+        Consumer<String> exception = errorResponse.get(statusCode);
         if (exception != null) {
-          exception.accept(response);
-        } else if (response.getStatus() < 400) {
+          exception.accept(responseBody);
+        } else if (statusCode < 400) {
           throw new RedirectionException(response);
-        } else if (response.getStatus() < 500) {
-          throw new ClientErrorException(response);
+        } else if (statusCode < 500) {
+          throw new ClientErrorException(responseBody, statusCode);
         }
-        
-        throw new ServerErrorException(response);
+        throw new ServerErrorException(responseBody, statusCode);
       }
     } finally {
       try {
@@ -569,7 +569,7 @@ public class ApiClient {
     }
   }
 
-  private static Map<Integer, Consumer<Response>> errorResponse;
+  private static Map<Integer, Consumer<String>> errorResponse;
 
   static {
     errorResponse = new HashMap<>();
