@@ -57,14 +57,14 @@ public class BabysaurMojo extends AbstractMojo {
 			manifests.add(new ArtifactManifest.Builder()
 				.baseImageName(baseImageName)
 				.fullImageName(fullImageName)
-				.serviceName(serviceName == null ? project.getName() : serviceName).build());
+				.serviceName(serviceName == null ? project.getArtifactId() : serviceName).build());
 
 			if (extras != null) {
 				extras.forEach(b -> {
 					manifests.add(new ArtifactManifest.Builder()
 						.baseImageName(b.getBaseImageName())
 						.fullImageName(b.getFullImageName())
-						.serviceName(b.getServiceName() == null ? project.getName() : b.getServiceName()).build());
+						.serviceName(b.getServiceName() == null ? project.getArtifactId() : b.getServiceName()).build());
 				});
 			}
 

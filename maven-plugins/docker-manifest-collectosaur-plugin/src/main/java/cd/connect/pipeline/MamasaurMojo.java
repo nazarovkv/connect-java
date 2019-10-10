@@ -156,7 +156,7 @@ public class MamasaurMojo extends AbstractMojo {
 			try {
 				manifests.addAll(om.readValue(manifest, manifestType));
 			} catch (IOException e) {
-				getLog().error("Unable to read manifest " + manifest.getPath());
+				getLog().error("Unable to read manifest " + manifest.getPath(), e);
 				throw new MojoFailureException("Cannot read manifest", e);
 			}
 		} else {

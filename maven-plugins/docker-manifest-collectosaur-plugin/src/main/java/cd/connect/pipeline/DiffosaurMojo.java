@@ -52,6 +52,9 @@ public class DiffosaurMojo extends AbstractMojo {
 	@Parameter(name = "outputFilePrefix")
 	private String outputFile = "diffosaur";
 
+	@Parameter(name = "codeDirectoryPrefix", property = "diffosaur.codeDirectoryPrefix")
+	private String codeDirectoryPrefix = "";
+
 	@Parameter(name = "gitDiff", property = "diffosaur.gitDiff")
 	private String gitDiff = "git diff --name-only ..$diffAgainst";
 
@@ -60,10 +63,12 @@ public class DiffosaurMojo extends AbstractMojo {
 	static class Detector implements Runnable {
 		private final InputStream inputStream;
 		private final Map<String, Boolean> modules;
+		private final String codeDirectoryPrefix;
 
-		Detector(InputStream inputStream, Map<String, Boolean> modules) {
+		Detector(InputStream inputStream, Map<String, Boolean> modules, String codeDirectoryPrefix) {
 			this.inputStream = inputStream;
 			this.modules = modules;
+			this.codeDirectoryPrefix = codeDirectoryPrefix;
 		}
 
 		@Override
@@ -71,6 +76,16 @@ public class DiffosaurMojo extends AbstractMojo {
 
 			new BufferedReader(new InputStreamReader(inputStream)).lines()
 				.forEach(l -> {
+					System.out.println("Line is " + l);
+					// if the code is in a subdirectory, string this name off, ensuring we don't have a directory prefix at the front
+					if (l.startsWith(codeDirectoryPrefix)) {
+						l = l.substring(codeDirectoryPrefix.length());
+						while (l.startsWith(File.separator)) {
+							l = l.substring(1);
+						}
+					}
+					System.out.println("line is now " + l);
+
 					int pos = l.indexOf(File.separatorChar);
 					if (pos != -1) {
 						String prefix = l.substring(0, pos);
@@ -89,7 +104,7 @@ public class DiffosaurMojo extends AbstractMojo {
 				.command(gitDiff.replace("$diffAgainst", diffAgainst).split(" "))
 				.start();
 
-			Detector detector = new Detector(diffProcess.getInputStream(), readPom());
+			Detector detector = new Detector(diffProcess.getInputStream(), readPom(), codeDirectoryPrefix);
 
 			final Future<?> submit = Executors.newSingleThreadExecutor().submit(detector);
 
@@ -106,8 +121,8 @@ public class DiffosaurMojo extends AbstractMojo {
 
 			getLog().info("Detected updates for " + val);
 
-			FileUtils.write(new File(outputFile + ".bat"), "SET MAVEN_DIFF=" + val, Charset.defaultCharset());
-			FileUtils.write(new File(outputFile + ".sh"), "export MAVEN_DIFF=\"" + val + "\"", Charset.defaultCharset());
+			FileUtils.write(new File(outputFile + ".bat"), val.length() == 0 ? "" : "SET MAVEN_DIFF=-pl " + val, Charset.defaultCharset());
+			FileUtils.write(new File(outputFile + ".sh"), val.length() == 0 ? "" : "export MAVEN_DIFF=\"-pl " + val + "\"", Charset.defaultCharset());
 			FileUtils.write(new File(outputFile + ".txt"), val, Charset.defaultCharset());
 			// now we know _nothing_ about the order of dependencies, so we just bundle them all up in a string and put them out.
 		} catch (IOException | InterruptedException | ExecutionException e) {
