@@ -540,7 +540,7 @@ public class ApiClient {
       int statusCode = response.getStatusInfo().getStatusCode();
       Map<String, List<String>> responseHeaders = buildResponseHeaders(response);
 
-      if (response.getStatus() == Status.NO_CONTENT.getStatusCode()) {
+      if (statusCode == Status.NO_CONTENT.getStatusCode()) {
         return new ApiResponse<>(statusCode, responseHeaders, response);
       } else if (response.getStatusInfo().getFamily() == Status.Family.SUCCESSFUL) {
         if (returnType == null)
@@ -548,18 +548,17 @@ public class ApiClient {
         else
           return new ApiResponse<>(statusCode, responseHeaders, deserialize(response, returnType), response);
       } else {
-        Consumer<String> exception = errorResponse.get(response.getStatus());
         GenericType<String> stringGenericType = new GenericType<String>() {};
         String responseBody = response.readEntity(stringGenericType);
-        Integer responseStatus = response.getStatus();
+        Consumer<String> exception = errorResponse.get(statusCode);
         if (exception != null) {
           exception.accept(responseBody);
-        } else if (response.getStatus() < 400) {
+        } else if (statusCode < 400) {
           throw new RedirectionException(response);
-        } else if (response.getStatus() < 500) {
-          throw new ClientErrorException(responseBody, responseStatus);
+        } else if (statusCode < 500) {
+          throw new ClientErrorException(responseBody, statusCode);
         }
-        throw new ServerErrorException(responseBody, responseStatus);
+        throw new ServerErrorException(responseBody, statusCode);
       }
     } finally {
       try {
