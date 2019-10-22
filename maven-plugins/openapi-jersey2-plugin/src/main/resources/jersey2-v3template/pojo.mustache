@@ -245,7 +245,7 @@ public class {{classname}} {{#parent}}extends {{{parent}}} {{/parent}}{{#parcela
     copy.{{setter}}(this.{{getter}}());
        {{/isContainer}}
        {{#isContainer}}
-    copy.{{setter}}(this.{{getter}}() == null ? null : this.{{getter}}().copy());
+    copy.{{setter}}(this.{{getter}}() == null ? null : this.{{getter}}().entrySet().stream().collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
        {{/isContainer}}
      {{/isListContainer}}
    {{/vars}}
