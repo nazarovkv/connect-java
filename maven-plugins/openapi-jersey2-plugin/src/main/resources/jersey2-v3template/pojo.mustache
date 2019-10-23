@@ -244,9 +244,14 @@ public class {{classname}} {{#parent}}extends {{{parent}}} {{/parent}}{{#parcela
        {{^isContainer}}
     copy.{{setter}}(this.{{getter}}());
        {{/isContainer}}
-       {{#isContainer}}
+       {{#isMapContainer}}
+        {{#isPrimitiveType}}
     copy.{{setter}}(this.{{getter}}() == null ? null : this.{{getter}}().entrySet().stream().collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
-       {{/isContainer}}
+        {{/isPrimitiveType}}
+        {{^isPrimitiveType}}
+    copy.{{setter}}(this.{{getter}}() == null ? null : this.{{getter}}().entrySet().stream().collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, t -> t.getValue().copy())));
+        {{/isPrimitiveType}}
+       {{/isMapContainer}}
      {{/isListContainer}}
    {{/vars}}
 
