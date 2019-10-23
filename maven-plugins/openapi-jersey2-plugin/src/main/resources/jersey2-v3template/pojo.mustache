@@ -240,14 +240,22 @@ public class {{classname}} {{#parent}}extends {{{parent}}} {{/parent}}{{#parcela
     copy.{{setter}}(this.{{getter}}() == null ? null : this.{{getter}}().stream().map(t -> t.copy()).collect(java.util.stream.Collectors.toList()));
        {{/complexType}}
      {{/isListContainer}}
-     {{^isListContainer}}
-       {{^isContainer}}
+     {{#isMapContainer}}
+      {{#isPrimitiveType}}
+    copy.{{setter}}(this.{{getter}}() == null ? null : this.{{getter}}().entrySet().stream().collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+      {{/isPrimitiveType}}
+      {{^isPrimitiveType}}
+    copy.{{setter}}(this.{{getter}}() == null ? null : this.{{getter}}().entrySet().stream().collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, t -> t.getValue().copy())));
+      {{/isPrimitiveType}}
+     {{/isMapContainer}}
+     {{^isContainer}}
+      {{#isFreeFormObject}}
+    copy.{{setter}}(this.{{getter}}().copy());
+      {{/isFreeFormObject}}
+      {{^isFreeFormObject}}
     copy.{{setter}}(this.{{getter}}());
-       {{/isContainer}}
-       {{#isContainer}}
-    copy.{{setter}}(this.{{getter}}() == null ? null : this.{{getter}}().copy());
-       {{/isContainer}}
-     {{/isListContainer}}
+      {{/isFreeFormObject}}
+     {{/isContainer}}
    {{/vars}}
 
     return copy;
