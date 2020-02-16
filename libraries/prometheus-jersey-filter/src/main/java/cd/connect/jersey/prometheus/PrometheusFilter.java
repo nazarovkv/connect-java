@@ -38,6 +38,7 @@ public class PrometheusFilter implements ContainerRequestFilter, ContainerRespon
   protected String prefix = "";
   private final Prometheus annotation;
   private Histogram tracker;
+  private static Map<String, Histogram> histogramMap = new ConcurrentHashMap<>();
 
   /**
    * Registers a filter specifically for the defined method.
@@ -106,7 +107,9 @@ public class PrometheusFilter implements ContainerRequestFilter, ContainerRespon
       name = prefix + "_" + name;
     }
 
-    tracker = Histogram.build().name(name).help(path).register();
+    final String help = path;
+
+    tracker = histogramMap.computeIfAbsent(name, nm -> Histogram.build().name(nm).help(help).register());
   }
 
   /**
