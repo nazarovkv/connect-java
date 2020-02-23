@@ -10,6 +10,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
@@ -40,10 +41,14 @@ public class MergeYamlMojo extends AbstractMojo {
 	@Parameter(name = "files", required = true, property = "merge-yaml.files")
 	List<File> files;
 
+	@Parameter(name = "flowStyle", property = "merge-yaml.flowStyle", defaultValue = "AUTO")
+	DumperOptions.FlowStyle flowStyle;
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		Yaml yaml = new Yaml();
+		DumperOptions opts = new DumperOptions();
+		opts.setDefaultFlowStyle(flowStyle);
+		Yaml yaml = new Yaml(opts);
 		Map<String, Object> scope = new HashMap<String, Object>();
 
 		scope.putAll(System.getenv());
