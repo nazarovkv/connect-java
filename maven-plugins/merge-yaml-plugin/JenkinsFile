@@ -1,12 +1,24 @@
 pipeline {
-    agent any
+   def PomFile = 'maven-plugins/merge-yaml-plugin/pom.xml'
+   agent any
    stages {
-      stage('Build') {
-         steps {
-            // Run Maven on a Unix agent.
-            sh "mvn -Dmaven.test.failure.ignore=true clean package -f maven-plugins/merge-yaml-plugin/pom.xml"
-         }
-
+      stage('Compile') {
+           steps {
+              // Run Maven on a Unix agent.
+              sh "mvn compile -f ${PomFile}"
+           }
+      }
+      stage('Package') {
+           steps {
+              // Run Maven on a Unix agent.
+              sh "mvn -f ${PomFile}"
+           }
+      }
+      stage('Install') {
+           steps {
+              // Run Maven on a Unix agent.
+              sh "mvn install -f ${PomFile}"
+           }
       }
    }
 }
