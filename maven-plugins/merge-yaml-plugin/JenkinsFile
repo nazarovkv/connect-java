@@ -11,7 +11,7 @@ pipeline {
       stage('Package') {
            steps {
               // Run Maven on a Unix agent.
-              sh "mvn -f ${PomFile}"
+              sh "mvn package -f ${PomFile}"
            }
       }
       stage('Install') {
