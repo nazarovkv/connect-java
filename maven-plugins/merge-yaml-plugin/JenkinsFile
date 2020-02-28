@@ -1,5 +1,5 @@
+def PomFile = 'maven-plugins/merge-yaml-plugin/pom.xml'
 pipeline {
-   def PomFile = 'maven-plugins/merge-yaml-plugin/pom.xml'
    agent any
    stages {
       stage('Compile') {
