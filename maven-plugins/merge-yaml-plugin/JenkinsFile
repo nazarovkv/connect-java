@@ -1,23 +1,24 @@
 def PomFile = 'maven-plugins/merge-yaml-plugin/pom.xml'
+def mvnCmd = 'mvn ${env.STAGE_NAME} -f ${PomFile}'
 pipeline {
    agent any
    stages {
-      stage('Compile') {
+      stage('compile') {
            steps {
               // Run Maven on a Unix agent.
-              sh "mvn compile -f ${PomFile}"
+              sh "${mvnCmd}"
            }
       }
-      stage('Package') {
+      stage('package') {
            steps {
               // Run Maven on a Unix agent.
-              sh "mvn package -f ${PomFile}"
+              sh "${mvnCmd}"
            }
       }
-      stage('Install') {
+      stage('install') {
            steps {
               // Run Maven on a Unix agent.
-              sh "mvn install -f ${PomFile}"
+              sh "${mvnCmd}"
            }
       }
    }
